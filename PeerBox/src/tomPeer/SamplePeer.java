@@ -25,6 +25,18 @@ public class SamplePeer {
 		
 	}
 	
+	//add an address to the DHT, so other peers can share ( 7asab mana fahem)
+	public void putPeerAddress()
+	{
+		
+	}
+	
+	//retrieve address/object from the DHT, 7asab mana fahem bardo
+	public void getPeerAddress(/* hash */ )
+	{
+		
+	}
+	
 	
 
 	/**

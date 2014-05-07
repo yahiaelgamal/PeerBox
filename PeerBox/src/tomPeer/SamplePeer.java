@@ -16,10 +16,11 @@ import net.tomp2p.p2p.Peer;
 import net.tomp2p.p2p.PeerMaker;
 import net.tomp2p.peers.Number160;
 import net.tomp2p.peers.PeerAddress;
+import net.tomp2p.rpc.ObjectDataReply;
 import net.tomp2p.storage.Data;
 
 public class SamplePeer {
-	private Peer peer;
+	private Peer samplePeer;
 	private String peerID;
 	private String shareFolderPath;
 
@@ -37,9 +38,9 @@ public class SamplePeer {
 		// random UUID must be stored on hdd after creation
 		// new bindings, beyefham el interface lewa7do, (dont supply eth0 or
 		// eth1)
-		peer = new PeerMaker(Number160.createHash(UUID.randomUUID().toString()))
-				.setPorts(Constants.PORT).setBindings(new Bindings(IPAddress))
-				.makeAndListen();
+		samplePeer = new PeerMaker(Number160.createHash(UUID.randomUUID()
+				.toString())).setPorts(Constants.PORT)
+				.setBindings(new Bindings(IPAddress)).makeAndListen();
 
 		if (bootstrapIP != null
 				&& !bootstrapIP.replaceAll("\\s+", "").isEmpty()) {
@@ -51,10 +52,43 @@ public class SamplePeer {
 		}
 
 		// add myself to DHT
-		this.putPeerAddress(peer.getPeerAddress());
+		this.putPeerAddress(this.samplePeer.getPeerAddress());
 
 		// open peer for connections, somehow
+		this.manageMessages();
+	}
 
+	// after implementation and a 2nd thought, I really dunno if we gonna need
+	// that xD
+	private void manageMessages() {
+		ObjectDataReply objectDataReply = new ObjectDataReply() {
+
+			@Override
+			public Object reply(PeerAddress sender, Object request)
+					throws Exception {
+				// TODO Auto-generated method stub
+				if (request != null && request instanceof SampleMessage) {
+					// Presumably we have different type of messages and we need
+					// to differ between them, for example, it can call
+					// "downloadfile" etc
+					switch (request.toString()) {
+					case "blah":
+						;
+						break;
+					case "blah1":
+						;
+						break;
+					case "blah2":
+						;
+						break;
+					}
+				}
+				return null;
+			}
+		};
+
+		// TODO Auto-generated method stub
+		this.samplePeer.setObjectDataReply(objectDataReply);
 	}
 
 	private boolean bootstrapper(String bootstrapIP) {
@@ -67,7 +101,7 @@ public class SamplePeer {
 			return false;
 		}
 
-		FutureBootstrap future = peer.bootstrap()
+		FutureBootstrap future = this.samplePeer.bootstrap()
 				.setInetAddress(bootstrapAddress).setPorts(Constants.PORT)
 				.start();
 		future.awaitUninterruptibly();
@@ -81,16 +115,16 @@ public class SamplePeer {
 		return true;
 	}
 
-	public void checkForUpdates() {
+	private void checkForUpdates() {
 
 	}
 
 	// might be boolean to make sure its there
-	public void downloadFile() {
+	private void downloadFile() {
 
 	}
 
-	public void reportNewFile(String f) {
+	private void reportNewFile(String f) {
 
 	}
 
@@ -104,7 +138,7 @@ public class SamplePeer {
 	 * @param peerAddress
 	 * @author saftophobia
 	 */
-	public void putPeerAddress(PeerAddress peerAddress) {
+	private void putPeerAddress(PeerAddress peerAddress) {
 		FutureDHT fdht;
 		ByteArrayOutputStream byteArrayOutputStream = null;
 		try {
@@ -123,13 +157,13 @@ public class SamplePeer {
 		// edit: the data used to be TEST, now i m gonna PUT the new
 		// serializable
 		try {
-			fdht = peer.put(peerAddress.getID())
+			fdht = this.samplePeer.put(peerAddress.getID())
 					.setData(new Data(byteArrayOutput)).start();
 
 			// dont wait forever like the tutorial, set a time
 			fdht.wait(3000);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
+			// TODO Auto-generated catch bloc
 			e.printStackTrace();
 		}
 
@@ -142,8 +176,9 @@ public class SamplePeer {
 	 * @return
 	 * @author saftophobia
 	 */
-	public PeerAddress getPeerAddress(String hashInput) {
-		FutureDHT futureDHT = peer.get(new Number160(hashInput)).start();
+	private PeerAddress getPeerAddress(String hashInput) {
+		FutureDHT futureDHT = this.samplePeer.get(new Number160(hashInput))
+				.start();
 		futureDHT.awaitUninterruptibly();
 		if (futureDHT.isSuccess()) {
 			Data data = futureDHT.getData();
@@ -185,11 +220,11 @@ public class SamplePeer {
 	}
 
 	public Peer getPeer() {
-		return peer;
+		return samplePeer;
 	}
 
 	public void setPeer(Peer peer) {
-		this.peer = peer;
+		this.samplePeer = peer;
 	}
 
 	public String getPeerID() {

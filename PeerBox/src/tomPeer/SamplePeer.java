@@ -1,23 +1,33 @@
 package tomPeer;
 
+import handlers.FileHandler;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
+import java.util.Collection;
 import java.util.UUID;
+
+import javax.sound.midi.Track;
 
 import utils.Constants;
 import net.tomp2p.connection.Bindings;
+import net.tomp2p.connection.PeerConnection;
 import net.tomp2p.futures.FutureBootstrap;
 import net.tomp2p.futures.FutureDHT;
+import net.tomp2p.futures.FutureResponse;
+import net.tomp2p.futures.FutureTracker;
 import net.tomp2p.p2p.Peer;
 import net.tomp2p.p2p.PeerMaker;
 import net.tomp2p.peers.Number160;
 import net.tomp2p.peers.PeerAddress;
 import net.tomp2p.rpc.ObjectDataReply;
 import net.tomp2p.storage.Data;
+import net.tomp2p.storage.TrackerData;
 
 public class SamplePeer {
 	private Peer samplePeer;
@@ -58,8 +68,11 @@ public class SamplePeer {
 		this.manageMessages();
 	}
 
-	// after implementation and a 2nd thought, I really dunno if we gonna need
-	// that xD
+	/**
+	 * direct messages between peers
+	 * 
+	 * @author saftophobia
+	 */
 	private void manageMessages() {
 		ObjectDataReply objectDataReply = new ObjectDataReply() {
 
@@ -75,7 +88,7 @@ public class SamplePeer {
 					case "blah":
 						;
 						break;
-					case "blah1":
+					case "blah1": // download file masalan
 						;
 						break;
 					case "blah2":
@@ -119,9 +132,67 @@ public class SamplePeer {
 
 	}
 
-	// might be boolean to make sure its there
-	private void downloadFile() {
+	// might be boolean to make sure its successfull
+	private void downloadFile(String hashPart, String filePath) {
+		// has to be initiliazed for the tracker
+		Number160 locationKey = Number160.createHash(hashPart);
 
+		// sample codes on internet uses .setDomainKey(domainKey), no clue what
+		// it does.
+		FutureTracker futureTracker = this.samplePeer.getTracker(locationKey)
+				.start();
+
+		futureTracker.awaitUninterruptibly();
+
+		// get all trackers
+		Collection<TrackerData> trackers = futureTracker.getTrackers();
+		FutureResponse futureResponse = null;
+
+		if (trackers != null && !trackers.isEmpty()) {
+			while (trackers.iterator().hasNext()) {
+				PeerAddress peerAddress = trackers.iterator().next()
+						.getPeerAddress();
+
+				if (peerAddress != null) {
+					// found an address, initiate connection
+					PeerConnection peerConnection = this.samplePeer
+							.createPeerConnection(peerAddress, 25);
+					if (peerConnection != null) {
+						futureResponse = this.samplePeer.sendDirect()
+								.setConnection(peerConnection)
+								.setObject("some protocol to be decided later")
+								.start();
+						futureResponse.awaitUninterruptibly();
+						break; //3shan matgebsh trackers tanyeen malohmsh lazma
+					}
+				}
+			}
+		} else {
+			System.out.println("no trackers online");
+		}
+
+		// check for response
+		if (futureResponse != null && futureResponse.isSuccess()) {
+			byte[] datastream = (byte[]) futureResponse.getObject();
+			if (datastream != null) {
+				// save
+				File file = new File(filePath);
+				if (file.exists()) {
+					// replace it somehow
+				} else {
+					try {
+						FileHandler.createFile(filePath, datastream);
+
+						System.out.println("SUCCESS!");
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			} else {
+				System.out.println("file download unsuccessful");
+			}
+		}
 	}
 
 	private void reportNewFile(String f) {

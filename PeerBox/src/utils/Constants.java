@@ -1,5 +1,5 @@
 package utils;
 
 public class Constants {
-	//public static final String blah = ""
+	public static final int PORT = 1337;
 }

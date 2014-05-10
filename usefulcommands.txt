@@ -1,0 +1,6 @@
+java -cp "build/classes:config:lib/log4j.jar" de.uniba.wiai.lspi.chord.console.Main
+
+create -names mypeer1_mypeer2 -bootstraps mypeer0
+create -names mypeer3_mypeer4 -bootstraps mypeer0_mypeer1
+joinN -port 9000 -bootstrap localhost:8001
+

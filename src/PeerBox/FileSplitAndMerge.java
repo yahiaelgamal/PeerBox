@@ -27,28 +27,18 @@ public class FileSplitAndMerge {
 	// Returns list of paths to split files
     public static LinkedList<String> splitFile(File f) throws IOException {
     	LinkedList<String> paths = new LinkedList<String>();
-        BufferedInputStream bis = new BufferedInputStream(
-                new FileInputStream(f));
-        FileOutputStream out;
+        BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
         String name = f.getName();
         int partCounter = 1;
-        // sizeOfFiles = 512 KB, can be customized to our needs
         
+        // sizeOfFiles = 512 KB, can be customized to our needs
         int sizeOfFiles = 512 * 1024;	 // need to be synced with FileManager.PIECE_SIZE
         byte[] buffer = new byte[sizeOfFiles];
-        int tmp = 0;
         String path;
-        while ((tmp = bis.read(buffer)) > 0) {
-        	
-        	// Saves file as originalFileName.extension.partNo in the same directory as original file
+        while ((bis.read(buffer)) > 0) {
         	path = f.getParent()+File.separator+name+"."+String.format("%1d", partCounter++);
-            File newFile=new File(path);
-            newFile.createNewFile();
-            out = new FileOutputStream(newFile);
-            out.write(buffer,0,tmp);
-            out.close();
-         
-            paths.add(newFile.getAbsolutePath());
+            FileManager.writeToAbsoluteFile(path, buffer);
+            paths.add(path);
         }
         
         bis.close();

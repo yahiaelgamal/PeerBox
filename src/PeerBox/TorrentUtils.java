@@ -24,6 +24,6 @@ public class TorrentUtils {
 												   String[][] piecesInfo) {
 		JSONArray jsonArr = convertTorrentContent(piecesInfo);
 		String jsonArrString = jsonArr.toJSONString();
-		return fm.writeToFile(torrentFileName, jsonArrString.getBytes());
+		return fm.writeToRelativeFile(torrentFileName, jsonArrString.getBytes());
 	}
 }

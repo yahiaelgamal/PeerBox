@@ -43,9 +43,13 @@ public class FileManager {
         return splitted;
     }
 
-    public boolean writeToFile(String relativePath, byte[] content) {
+    public boolean writeToRelativeFile(String relativePath, byte[] content) {
+        String fullPath = buildFullPath(relativePath);
+        return FileManager.writeToAbsoluteFile(fullPath, content);
+    }
+    
+    public static boolean writeToAbsoluteFile(String fullPath, byte[] content) {
         try {
-            String fullPath = buildFullPath(relativePath);
             File file = new File(fullPath);
             FileOutputStream fos = new FileOutputStream(file);
             fos.write(content);

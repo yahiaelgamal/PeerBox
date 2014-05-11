@@ -11,22 +11,14 @@ public class FileSplitAndMerge {
 	
 	public static void mergeFiles(String filename, LinkedList<String> paths) throws IOException{
 		File out = new File(filename);
-		File read;
 		FileOutputStream fos;
-		FileInputStream fis;
 		byte[] fileBytes;
-		int bytesRead = 0;
 	    fos = new FileOutputStream(out,true);             
 	    for (String path: paths) {
-	    	read = new File(path);
-	        fis = new FileInputStream(read);
-	        fileBytes = new byte[(int) read.length()];
-	        bytesRead = fis.read(fileBytes, 0, (int) read.length());
+	        fileBytes = FileManager.readFile(path);
 	        fos.write(fileBytes);
 	        fos.flush();
 	        fileBytes = null;
-	        fis.close();
-	        fis = null;
 	    }
 	    fos.close();
 	    fos = null;

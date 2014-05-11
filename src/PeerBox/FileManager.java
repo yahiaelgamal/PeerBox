@@ -80,14 +80,10 @@ public class FileManager {
             f.close();
         }
     }
+
     public static String convertMapToJSONString(Map map) {
         String jsonString = JSONObject.toJSONString(map);
         return jsonString;
-    }
-
-//  @SuppressWarnings("unchecked")
-    public static void main(String[] args) {
-        Key key = new Key("key 1");
     }
 
 }

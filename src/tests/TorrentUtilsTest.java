@@ -10,9 +10,6 @@ import PeerBox.TorrentUtils;
 
 public class TorrentUtilsTest {
 
-	/**
-	 * @param args
-	 */
 	public static String[][] getTestConfig(){
 		String[][] info = { {"key1", "EncKey1", "init1"},
 							{"key2", "EncKey2", "init2"},

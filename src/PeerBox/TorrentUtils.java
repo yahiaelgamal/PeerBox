@@ -1,5 +1,7 @@
 package PeerBox;
 
+import java.util.Arrays;
+
 import org.json.simple.JSONArray;
 
 public class TorrentUtils {

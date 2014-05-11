@@ -1,10 +1,13 @@
 package PeerBox;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -24,7 +27,7 @@ public class FileManager {
 
         this.workingDir = projDir + File.separator + "peersData" + File.separator + folderName;
 
-        System.out.println("working idr : " + workingDir);
+//        System.out.println("working dir : " + workingDir);
         File dir = new File(workingDir);
         if(!dir.exists())
             dir.mkdir();
@@ -55,7 +58,28 @@ public class FileManager {
         }
         return true;
     }
+    
+    public static byte[] readFile(String file) throws IOException {
+        return readFile(new File(file));
+    }
 
+    public static byte[] readFile(File file) throws IOException {
+        // Open file
+        RandomAccessFile f = new RandomAccessFile(file, "r");
+        try {
+            // Get and check length
+            long longlength = f.length();
+            int length = (int) longlength;
+            if (length != longlength)
+                throw new IOException("File size >= 2 GB");
+            // Read file and return data
+            byte[] data = new byte[length];
+            f.readFully(data);
+            return data;
+        } finally {
+            f.close();
+        }
+    }
     public static String convertMapToJSONString(Map map) {
         String jsonString = JSONObject.toJSONString(map);
         return jsonString;

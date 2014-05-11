@@ -87,6 +87,7 @@ public class ChordWrapper {
 	}
 	
 	public static void main(String[] args){
+
 		System.out.println(System.getProperty("java.class.path"));
 		int nrPeers = 10;
 		try {

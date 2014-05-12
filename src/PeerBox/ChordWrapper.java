@@ -119,7 +119,8 @@ public class ChordWrapper {
 		String hash = torrentInfo[0];
 		byte[] key = Utils.fromHexString(torrentInfo[1]);
 		byte[] iv = Utils.fromHexString(torrentInfo[2]);
-		byte[] torrentBytes = (byte[]) (dht2.retrieve(new Key(hash)).toArray()[0]);
+		byte[] dhtEntry = (byte[]) (dht2.retrieve(new Key(hash)).toArray()[0]);
+		byte[] torrentBytes = Arrays.copyOfRange(dhtEntry, 1, dhtEntry.length);
 		
 		// decrypt torrent info
 		byte[] torrentDecrypted = Crypto.decryptAES(torrentBytes, key, iv);
@@ -266,7 +267,7 @@ public class ChordWrapper {
 			IllegalBlockSizeException, BadPaddingException,
 			InvalidKeyException, InvalidAlgorithmParameterException {
 		FileOutputStream fos = new FileOutputStream(
-				fileManager.buildFullPath(filename), true);
+				fileManager.buildFullPath(filename), false);
 
 		byte[] pieceBytes, decryptedBytes;
 		for (int i = 0; i < hash_key_ivs.size(); i++) {

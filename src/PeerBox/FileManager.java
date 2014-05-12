@@ -47,7 +47,7 @@ public class FileManager {
         String fullPath = buildFullPath(relativePath);
         return FileManager.writeToAbsoluteFile(fullPath, content);
     }
-    
+
     public static boolean writeToAbsoluteFile(String fullPath, byte[] content) {
         try {
             File file = new File(fullPath);
@@ -62,7 +62,7 @@ public class FileManager {
         }
         return true;
     }
-    
+
     public static byte[] readFile(String file) throws IOException {
         return readFile(new File(file));
     }

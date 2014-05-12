@@ -17,13 +17,23 @@ public class TorrentConfig {
         byte[] bytes = FileManager.readFile(jsonFileFullPath);
         String str = new String(bytes);
         Object obj = JSONValue.parse(str);
-        config = (JSONArray) obj;
+        this.config = (JSONArray) obj;
     }
     
-    public TorrentConfig(ArrayList config) {
-    	this.config = config;
+    // REMOVE DUPLICATE
+    public TorrentConfig(ArrayList<ArrayList<String>> piecesInfo) {
+        JSONArray jsonArr = new JSONArray();
+        for(ArrayList<String> pieceInfo: config) {
+            JSONArray jsonArr2 = new JSONArray();
+            for(String value : pieceInfo) {
+                jsonArr2.add(value);
+            }
+            jsonArr.add(jsonArr2);
+        }
+        this.config = jsonArr;
     }
     
+    // REMOVE DUPLICATE
     public TorrentConfig(String[][] piecesInfo) {
         // extends ArrayList
         JSONArray jsonArr = new JSONArray();

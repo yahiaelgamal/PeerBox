@@ -1,22 +1,13 @@
 package PeerBox;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
-
-import de.uniba.wiai.lspi.chord.console.command.entry.Key;
 
 public class FileManager {
     public String workingDir;

@@ -30,10 +30,10 @@ import de.uniba.wiai.lspi.chord.service.impl.ChordImpl;
 public class ChordWrapper {
 
 	// use over real network
-	static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
+//	static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
 
 	// use for testing on the JVM/thread
-	// String static PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.LOCAL_PROTOCOL);
+	 static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.LOCAL_PROTOCOL);
 
 	public Chord dht1;
 	public Chord dht2;
@@ -87,7 +87,7 @@ public class ChordWrapper {
 		String[][] pieceInfo = insertPieces(pieces);
 
 		// generate torrent info
-		TorrentConfig torrent = new TorrentConfig(pieceInfo);
+		TorrentConfig torrent = new TorrentConfig(filename, pieceInfo);
 		byte[] torrentBytes = torrent.toJSONString().getBytes();
 
 		// hash and encrypt torrent info. insert into DHT2
@@ -110,7 +110,7 @@ public class ChordWrapper {
 
 	// naive download. assumes file has not been edited.
 	// downloads file given its torrent info (hash, key and iv)
-	public void downloadFile(String filename, String[] torrentInfo)
+	public void downloadFile(String[] torrentInfo)
 			throws InvalidKeyException, NoSuchAlgorithmException,
 			NoSuchPaddingException, IllegalBlockSizeException,
 			BadPaddingException, InvalidAlgorithmParameterException,
@@ -125,9 +125,14 @@ public class ChordWrapper {
 		// decrypt torrent info
 		byte[] torrentDecrypted = Crypto.decryptAES(torrentBytes, key,
 				iv);
-
-		TorrentConfig torrentJSON = new TorrentConfig(torrentDecrypted);
-		String[][] hash_key_ivs = torrentJSON.getAllPiecesInfo();
+		System.out.println("====================");
+		System.out.println(torrentDecrypted);
+		System.out.println("====================");
+		TorrentConfig torrentConfig = new TorrentConfig(torrentDecrypted);
+		String filename = (String) torrentConfig.get("filename");
+		
+		ArrayList<ArrayList<String>> hash_key_ivs = torrentConfig.getAllPiecesInfo();
+		System.out.println(hash_key_ivs);
 
 		// download and combine pieces
 		downloadFile(filename, hash_key_ivs);
@@ -135,7 +140,7 @@ public class ChordWrapper {
 
 	// gets required pieces from DHT1, decrypts each, and combines them into
 	// file with name filename
-	private void downloadFile(String filename, String[][] hash_key_ivs)
+	private void downloadFile(String filename, ArrayList<ArrayList<String>> hash_key_ivs)
 			throws ServiceException, IOException, NoSuchAlgorithmException,
 			NoSuchPaddingException, IllegalBlockSizeException,
 			BadPaddingException, InvalidKeyException,
@@ -144,19 +149,19 @@ public class ChordWrapper {
 				fileManager.buildFullPath(filename), true);
 
 		byte[] pieceBytes, decryptedBytes;
-		for (int i = 0; i < hash_key_ivs.length; i++) {
+		for (int i = 0; i < hash_key_ivs.size(); i++) {
 			System.out.println("Getting piece " + i);
 
-			String[] hash_key_iv = hash_key_ivs[i];
+			ArrayList<String> hash_key_iv = hash_key_ivs.get(i);
 
 			// get piece from DHT using key
-			Set<Serializable> set = getPiece1(new Key(hash_key_iv[0]));
+			Set<Serializable> set = getPiece1(new Key(hash_key_iv.get(0)));
 			pieceBytes = (byte[]) (set.toArray()[0]);
 
 			// secret key and IV
 			// consider changing! we convert byte[] to string and back to byte[]
-			byte[] secretKey = Utils.fromHexString(hash_key_iv[1]);
-			byte[] iv = Utils.fromHexString(hash_key_iv[2]);
+			byte[] secretKey = Utils.fromHexString(hash_key_iv.get(1));
+			byte[] iv = Utils.fromHexString(hash_key_iv.get(2));
 
 			// decrypt piece
 			decryptedBytes = Crypto.decryptAES(pieceBytes, secretKey,
@@ -262,7 +267,8 @@ public class ChordWrapper {
 			// assumption of knowing the keys
 			// JUST FOR TESTING peer2 will retreive the picture
 			System.out.println("Peer 2 is getting peices .. ");
-			wrappers[2].downloadFile("retreivedFile.jpg", torrentInfo);
+//			wrappers[2].downloadFile("retreivedFile.jpg", torrentInfo);
+			wrappers[2].downloadFile(torrentInfo);
 			System.out.println("check peer2 folder for a surprise");
 			// VOALA WE HAVE A DROPBOX
 

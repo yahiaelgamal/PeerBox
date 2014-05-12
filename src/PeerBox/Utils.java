@@ -1,7 +1,16 @@
 package PeerBox;
 
+import java.util.ArrayList;
+
 public class Utils {
 
+	public static ArrayList convertFromArrayToArrayList(Object[] arr) {
+		ArrayList list = new ArrayList<>();
+		for(Object obj : arr) {
+			list.add(obj);
+		}
+		return list;
+	}
 	// encodes bytes as hexadecimal string
 	public static String toHexString(byte[] bytes) {
 		String string = "";

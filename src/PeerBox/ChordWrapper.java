@@ -30,10 +30,10 @@ import de.uniba.wiai.lspi.chord.service.impl.ChordImpl;
 public class ChordWrapper {
 
 	// use over real network
-//	static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
+//	public static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
 
 	// use for testing on the JVM/thread
-	 static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.LOCAL_PROTOCOL);
+	public static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.LOCAL_PROTOCOL);
 
 	public Chord dht1;
 	public Chord dht2;
@@ -109,10 +109,10 @@ public class ChordWrapper {
 	}
 	
 	public String[] update(String filename, String[] torrentInfo)throws IOException,
-	InvalidKeyException, NoSuchAlgorithmException,
-	NoSuchPaddingException, InvalidParameterSpecException,
-	IllegalBlockSizeException, BadPaddingException, ServiceException, 
-	InvalidAlgorithmParameterException, ParseException {
+										InvalidKeyException, NoSuchAlgorithmException,
+										NoSuchPaddingException, InvalidParameterSpecException,
+										IllegalBlockSizeException, BadPaddingException, ServiceException, 
+										InvalidAlgorithmParameterException, ParseException {
 
 		String[] newtorrentInfo = new String[3];
 		byte[] keytemp = Utils.fromHexString(Crypto.generateAESSecret());
@@ -127,15 +127,15 @@ public class ChordWrapper {
 		byte[] torrentDecrypted = Crypto.decryptAES(torrentBytes, key, iv);
 
 		TorrentConfig torrentJSON = new TorrentConfig(torrentDecrypted);
-		String[][] hash_key_ivs = torrentJSON.getAllPiecesInfo();
+		ArrayList<ArrayList<String>> hash_key_ivs = torrentJSON.getAllPiecesInfo();
 		
-		for (int i = 0; i < hash_key_ivs.length; i++) {
+		for (int i = 0; i < hash_key_ivs.size(); i++) {
 
-			String[] hash_key_iv = hash_key_ivs[i];
+			ArrayList<String> hash_key_iv = hash_key_ivs.get(i);
 			// get piece from DHT using key
-			Set<Serializable> set = getPiece1(new Key(hash_key_iv[0]));
+			Set<Serializable> set = getPiece1(new Key(hash_key_iv.get(i)));
 			byte[] pieceBytes = (byte[]) (set.toArray()[0]);
-			this.dht1.remove(new Key(hash_key_iv[0]), pieceBytes);
+			this.dht1.remove(new Key(hash_key_iv.get(i)), pieceBytes);
 		}
 		
 		//f(keytemp, keytorr) = keynew
@@ -146,7 +146,7 @@ public class ChordWrapper {
 		String[][] pieceInfo = insertPieces(pieces);
 
 		// generate torrent info
-		TorrentConfig torrent = new TorrentConfig(pieceInfo);
+		TorrentConfig torrent = new TorrentConfig(filename, pieceInfo);
 		byte[] newtorrentBytes = torrent.toJSONString().getBytes();
 
 		// hash and encrypt torrent info. insert into DHT2

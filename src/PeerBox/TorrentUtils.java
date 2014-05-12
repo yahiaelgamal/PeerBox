@@ -3,6 +3,7 @@ package PeerBox;
 import org.json.simple.JSONArray;
 
 public class TorrentUtils {
+	// FIXME Probably not worth whole class, consider moving to TorrentConfig
 	@SuppressWarnings("unchecked")
 	public static JSONArray convertTorrentContent(String[][] piecesInfo) {
 		// extends ArrayList
@@ -18,7 +19,6 @@ public class TorrentUtils {
 		return jsonArr;
 	}
 	
-	// TODO test the method
 	public static boolean writeTorrentConfigToFile(FileManager fm,
 												   String torrentFileName,
 												   String[][] piecesInfo) {

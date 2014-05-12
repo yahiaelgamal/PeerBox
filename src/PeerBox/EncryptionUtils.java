@@ -19,7 +19,7 @@ import javax.crypto.spec.SecretKeySpec;
 public class EncryptionUtils {
 
 	// generates a 128-bit AES key
-	public static String generateAESSecret() throws NoSuchAlgorithmException {
+	private static String generateAESSecret() throws NoSuchAlgorithmException {
 		KeyGenerator kgen = KeyGenerator.getInstance("AES");
 		kgen.init(128);
 		SecretKey skey = kgen.generateKey();
@@ -38,11 +38,17 @@ public class EncryptionUtils {
 	}
 
 	// encrypts data using AES with key secretKey
-	// returns Object[] {String initializationVector, byte[] encryptedData}
-	public static Object[] encryptAES(byte[] data, SecretKeySpec secretKey)
+	// returns Object[] 
+	// {String secretKey, String initializationVector, byte[] encryptedData}
+	public static Object[] encryptAES(byte[] data)
 			throws NoSuchAlgorithmException, NoSuchPaddingException,
 			IllegalBlockSizeException, BadPaddingException,
 			InvalidKeyException, InvalidParameterSpecException {
+
+		String secretKeyString = EncryptionUtils.generateAESSecret();
+		byte[] secretKeyBytes = EncryptionUtils.fromHexString(secretKeyString);
+		SecretKeySpec secretKey = new SecretKeySpec(secretKeyBytes, "AES");
+		
 		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 		cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 
@@ -52,7 +58,7 @@ public class EncryptionUtils {
 
 		byte[] encryptedData = cipher.doFinal(data);
 
-		return new Object[] { toHexString(iv), encryptedData };
+		return new Object[] { toHexString(secretKeyBytes), toHexString(iv), encryptedData };
 	}
 
 	// decrypts data using AES given key secretKey an initialization vector iv

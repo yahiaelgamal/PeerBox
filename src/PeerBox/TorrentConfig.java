@@ -9,12 +9,17 @@ import org.json.simple.parser.ParseException;
 
 public class TorrentConfig {
 
-
     // key, encryption key, init vector
     public ArrayList<ArrayList<String>> config;
 
     public TorrentConfig(String jsonFileFullPath) throws IOException, ParseException {
         byte[] bytes = FileManager.readFile(jsonFileFullPath);
+        String str = new String(bytes);
+        Object obj = JSONValue.parse(str);
+        this.config = (JSONArray) obj;
+    }
+    
+    public TorrentConfig(byte[] bytes) throws IOException, ParseException {
         String str = new String(bytes);
         Object obj = JSONValue.parse(str);
         this.config = (JSONArray) obj;
@@ -45,6 +50,23 @@ public class TorrentConfig {
             jsonArr.add(jsonArr2);
         }
         this.config = jsonArr;
+    }
+    
+    public String[][] getAllPiecesInfo() {
+    	 String[][] allPiecesInfo = new String[config.size()][3];
+    	 
+    	 String[] pieceInfo;
+    	 int i = 0;
+         for(ArrayList<String> piece : config) {
+        	 pieceInfo = new String[3];
+        	 
+        	 pieceInfo[0] = piece.get(0);
+        	 pieceInfo[1] = piece.get(1);
+        	 pieceInfo[2] = piece.get(2);
+        	 
+        	 allPiecesInfo[i++] = pieceInfo;
+         }
+         return allPiecesInfo;
     }
     
     public ArrayList<String> getAllKeys(){

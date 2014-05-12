@@ -4,15 +4,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.net.Inet4Address;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidParameterSpecException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
-import java.util.List;
 import java.util.Set;
-import java.security.*;
-import java.security.spec.InvalidParameterSpecException;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -30,7 +30,8 @@ import de.uniba.wiai.lspi.chord.service.impl.ChordImpl;
 public class ChordWrapper {
 
 	// use over real network
-//	public static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
+	// public static String PROTOCOL =
+	// URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
 
 	// use for testing on the JVM/thread
 	public static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.LOCAL_PROTOCOL);
@@ -94,7 +95,7 @@ public class ChordWrapper {
 		// hash = torrent info + current time
 		byte[] timeBytes = new SimpleDateFormat("HH:mm:ss").format(
 				Calendar.getInstance().getTime()).getBytes();
-		
+
 		String hash = Crypto.getMD5Hash(Utils.concat(torrentBytes, timeBytes));
 		torrentInfo[0] = hash;
 
@@ -107,28 +108,29 @@ public class ChordWrapper {
 
 		return torrentInfo;
 	}
-	
-	public String[] update(String filename, String[] torrentInfo)throws IOException,
-										InvalidKeyException, NoSuchAlgorithmException,
-										NoSuchPaddingException, InvalidParameterSpecException,
-										IllegalBlockSizeException, BadPaddingException, ServiceException, 
-										InvalidAlgorithmParameterException, ParseException {
+
+	public String[] update(String filename, String[] torrentInfo)
+			throws IOException, InvalidKeyException, NoSuchAlgorithmException,
+			NoSuchPaddingException, InvalidParameterSpecException,
+			IllegalBlockSizeException, BadPaddingException, ServiceException,
+			InvalidAlgorithmParameterException, ParseException {
 
 		String[] newtorrentInfo = new String[3];
 		byte[] keytemp = Utils.fromHexString(Crypto.generateAESSecret());
-		
-		//get old torrentinfo
+
+		// get old torrentinfo
 		String hash = torrentInfo[0];
 		byte[] key = Utils.fromHexString(torrentInfo[1]);
 		byte[] iv = Utils.fromHexString(torrentInfo[2]);
 		byte[] torrentBytes = (byte[]) (getPiece2(new Key(hash)).toArray()[0]);
-		
+
 		// decrypt torrent info
 		byte[] torrentDecrypted = Crypto.decryptAES(torrentBytes, key, iv);
 
 		TorrentConfig torrentJSON = new TorrentConfig(torrentDecrypted);
-		ArrayList<ArrayList<String>> hash_key_ivs = torrentJSON.getAllPiecesInfo();
-		
+		ArrayList<ArrayList<String>> hash_key_ivs = torrentJSON
+				.getAllPiecesInfo();
+
 		for (int i = 0; i < hash_key_ivs.size(); i++) {
 
 			ArrayList<String> hash_key_iv = hash_key_ivs.get(i);
@@ -137,10 +139,10 @@ public class ChordWrapper {
 			byte[] pieceBytes = (byte[]) (set.toArray()[0]);
 			this.dht1.remove(new Key(hash_key_iv.get(i)), pieceBytes);
 		}
-		
-		//f(keytemp, keytorr) = keynew
+
+		// f(keytemp, keytorr) = keynew
 		byte[] keynew = function(keytemp, key);
-		
+
 		// divide to pieces, hash, encrypt and insert into DHT1
 		byte[][] pieces = fileManager.splitFiles(filename);
 		String[][] pieceInfo = insertPieces(pieces);
@@ -154,7 +156,8 @@ public class ChordWrapper {
 		byte[] timeBytes = new SimpleDateFormat("HH:mm:ss").format(
 				Calendar.getInstance().getTime()).getBytes();
 
-		String newhash = Crypto.getMD5Hash(Utils.concat(newtorrentBytes, timeBytes));
+		String newhash = Crypto.getMD5Hash(Utils.concat(newtorrentBytes,
+				timeBytes));
 		newtorrentInfo[0] = newhash;
 
 		Object[] encryptionRes = Crypto.encryptAES(newtorrentBytes, keynew);
@@ -163,13 +166,14 @@ public class ChordWrapper {
 		byte[] encryptedTorrent = (byte[]) encryptionRes[2];
 
 		byte value = 0;
-		byte[] temp = {value};
-		
+		byte[] temp = { value };
+
 		Key key2 = new Key(newhash);
-		this.dht2.insert(new Key(hash), Utils.concat(Utils.concat(temp,keytemp), key2.getBytes()));
+		this.dht2.insert(new Key(hash),
+				Utils.concat(Utils.concat(temp, keytemp), key2.getBytes()));
 		value = (byte) 255;
-		temp = new byte[]{value};
-		this.dht2.insert(key2, Utils.concat(temp,encryptedTorrent));
+		temp = new byte[] { value };
+		this.dht2.insert(key2, Utils.concat(temp, encryptedTorrent));
 		return newtorrentInfo;
 	}
 
@@ -177,17 +181,17 @@ public class ChordWrapper {
 		byte[] out = new byte[keytemp.length];
 		int i = 0;
 		for (byte b : keytemp)
-		    out[i] = (byte) (b ^ key[i++]);
+			out[i] = (byte) (b ^ key[i++]);
 		return out;
 	}
 
 	// naive download. assumes file has not been edited.
 	// downloads file given its torrent info (hash, key and iv)
-	public void downloadFile(String[] torrentInfo)
-			throws InvalidKeyException, NoSuchAlgorithmException,
-			NoSuchPaddingException, IllegalBlockSizeException,
-			BadPaddingException, InvalidAlgorithmParameterException,
-			ServiceException, IOException, ParseException {
+	public void downloadFile(String[] torrentInfo) throws InvalidKeyException,
+			NoSuchAlgorithmException, NoSuchPaddingException,
+			IllegalBlockSizeException, BadPaddingException,
+			InvalidAlgorithmParameterException, ServiceException, IOException,
+			ParseException {
 
 		// get encrypted torrent info from dht2
 		String hash = torrentInfo[0];
@@ -196,15 +200,15 @@ public class ChordWrapper {
 		byte[] torrentBytes = (byte[]) (getPiece2(new Key(hash)).toArray()[0]);
 
 		// decrypt torrent info
-		byte[] torrentDecrypted = Crypto.decryptAES(torrentBytes, key,
-				iv);
+		byte[] torrentDecrypted = Crypto.decryptAES(torrentBytes, key, iv);
 		System.out.println("====================");
 		System.out.println(torrentDecrypted);
 		System.out.println("====================");
 		TorrentConfig torrentConfig = new TorrentConfig(torrentDecrypted);
 		String filename = (String) torrentConfig.get("filename");
-		
-		ArrayList<ArrayList<String>> hash_key_ivs = torrentConfig.getAllPiecesInfo();
+
+		ArrayList<ArrayList<String>> hash_key_ivs = torrentConfig
+				.getAllPiecesInfo();
 		System.out.println(hash_key_ivs);
 
 		// download and combine pieces
@@ -213,11 +217,11 @@ public class ChordWrapper {
 
 	// gets required pieces from DHT1, decrypts each, and combines them into
 	// file with name filename
-	private void downloadFile(String filename, ArrayList<ArrayList<String>> hash_key_ivs)
-			throws ServiceException, IOException, NoSuchAlgorithmException,
-			NoSuchPaddingException, IllegalBlockSizeException,
-			BadPaddingException, InvalidKeyException,
-			InvalidAlgorithmParameterException {
+	private void downloadFile(String filename,
+			ArrayList<ArrayList<String>> hash_key_ivs) throws ServiceException,
+			IOException, NoSuchAlgorithmException, NoSuchPaddingException,
+			IllegalBlockSizeException, BadPaddingException,
+			InvalidKeyException, InvalidAlgorithmParameterException {
 		FileOutputStream fos = new FileOutputStream(
 				fileManager.buildFullPath(filename), true);
 
@@ -237,8 +241,7 @@ public class ChordWrapper {
 			byte[] iv = Utils.fromHexString(hash_key_iv.get(2));
 
 			// decrypt piece
-			decryptedBytes = Crypto.decryptAES(pieceBytes, secretKey,
-					iv);
+			decryptedBytes = Crypto.decryptAES(pieceBytes, secretKey, iv);
 
 			// write pieces to file
 			fos.write(decryptedBytes);
@@ -305,51 +308,97 @@ public class ChordWrapper {
 		return this.dht2.retrieve(key);
 	}
 
-	public static void main(String[] args) {
-		System.out.println(System.getProperty("java.class.path"));
-		int nrPeers = 10;
+	public static ChordWrapper initNetwork(int DHTPort1, int DHTPort2) {
+		PropertiesLoader.loadPropertyFile();
+		String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
 		try {
-			PropertiesLoader.loadPropertyFile();
+			URL localURLDHT1 = new URL(PROTOCOL + "://"
+					+ Inet4Address.getLocalHost().getHostAddress() + ":"
+					+ DHTPort1 + "/");
 
-			URL localURL1 = new URL(PROTOCOL + "://localhost:8000/");
-			URL localURL2 = new URL(PROTOCOL + "://localhost:4000/");
-			ChordWrapper first = new ChordWrapper(localURL1, localURL2,
-					"peer0/");
-			System.out.println("Created first peer");
+			System.out.println(localURLDHT1);
 
-			ChordWrapper[] wrappers = new ChordWrapper[nrPeers];
-			wrappers[0] = first;
+			URL localURLDHT2 = new URL(PROTOCOL + "://"
+					+ Inet4Address.getLocalHost().getHostAddress() + ":"
+					+ DHTPort2 + "/");
 
-			for (int i = 1; i < nrPeers; i++) {
-				int port1 = 8000 + i;
-				int port2 = 4000 + i;
+			return new ChordWrapper(localURLDHT1, localURLDHT2, "initPeer");
 
-				URL newURL1 = new URL(PROTOCOL + "://localhost:" + port1 + "/");
-				URL newURL2 = new URL(PROTOCOL + "://localhost:" + port2 + "/");
-
-				// localURL (URL for someone in the network) will be known by a
-				// higher level discovery mechanism
-				wrappers[i] = new ChordWrapper(newURL1, newURL2, localURL1,
-						localURL2, "peer" + i + "/");
-			}
-
-			System.out.println("peer[0] is splitting files");
-			String[] torrentInfo = wrappers[0].uploadFile("IMG_8840.JPG");
-			System.out.println("peer[0] split ended");
-
-			// assumption of knowing the keys
-			// JUST FOR TESTING peer2 will retreive the picture
-			System.out.println("Peer 2 is getting peices .. ");
-//			wrappers[2].downloadFile("retreivedFile.jpg", torrentInfo);
-			wrappers[2].downloadFile(torrentInfo);
-			System.out.println("check peer2 folder for a surprise");
-			// VOALA WE HAVE A DROPBOX
-
-			// go to console and try retrieving the hashes, it will work !
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.exit(1);
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
+		return null;
+	}
+
+	public static ChordWrapper joinNetwork(int DHTPort1, int DHTPort2,
+			String bootstrapDHT1, String bootstrapDHT2) {
+		PropertiesLoader.loadPropertyFile();
+		String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
+		try {
+			URL localURLDHT1 = new URL(PROTOCOL + "://"
+					+ Inet4Address.getLocalHost().getHostAddress() + ":"
+					+ DHTPort1 + "/");
+
+			URL localURLDHT2 = new URL(PROTOCOL + "://"
+					+ Inet4Address.getLocalHost().getHostAddress() + ":"
+					+ DHTPort2 + "/");
+
+			URL bootstrappedDHT1 = new URL(PROTOCOL + "://" + bootstrapDHT1
+					+ "/");
+
+			URL bootstrappedDHT2 = new URL(PROTOCOL + "://" + bootstrapDHT2
+					+ "/");
+
+			return new ChordWrapper(localURLDHT1, localURLDHT2,
+					bootstrappedDHT1, bootstrappedDHT2, "bootstrapped");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+
+	public static void main(String[] args) {
+
+		// initialize network
+		ChordWrapper init = ChordWrapper.initNetwork(8000, 4000);
+
+		// joinExistingNetwork starts
+		// PropertiesLoader.loadPropertyFile();
+
+		ChordWrapper bootstrapper = ChordWrapper.joinNetwork(8001, 4001,
+				"192.168.1.1:8000", "192.168.1.1:4000");
+
+		String[] torrentinfo = null;
+
+		try {
+			torrentinfo = init.uploadFile("IMG_8840.JPG");
+			// the bootstrapper should know the torrentinfo somehow
+			// use sockets for testing sake
+			// DatagramSocket datagramSocket = new DatagramSocket(null);
+			// datagramSocket.bind(new
+			// InetSocketAddress(InetAddress.getByName(""),5000));
+			//
+			// for(int i=0;i<torrentinfo.length;i++){
+			// System.out.println(torrentinfo[i]);
+			// DatagramPacket packet = new DatagramPacket(message,
+			// message.length, address, PORT); // create packet to send
+			// datagramSocket.send(packet);
+			// }
+
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		try {
+			bootstrapper.downloadFile(torrentinfo);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 	}
 }

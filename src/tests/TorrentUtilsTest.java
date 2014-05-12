@@ -7,7 +7,10 @@ import java.util.ArrayList;
 
 import org.json.simple.JSONObject;
 
+import de.uniba.wiai.lspi.chord.data.URL;
+import de.uniba.wiai.lspi.chord.service.PropertiesLoader;
 import de.uniba.wiai.lspi.util.console.parser.ParseException;
+import PeerBox.ChordWrapper;
 import PeerBox.FileManager;
 import PeerBox.TorrentConfig;
 import PeerBox.Utils;
@@ -60,6 +63,54 @@ public class TorrentUtilsTest {
                tc.getAllKeys().get(2).equals("key3");
     }
 
+    public void testLocalNetwork(String PROTOCOL)
+    {
+    	 System.out.println(System.getProperty("java.class.path"));
+		 int nrPeers = 10;
+		 try {
+		 PropertiesLoader.loadPropertyFile();
+		
+		 URL localURL1 = new URL(PROTOCOL + "://localhost:8000/");
+		 URL localURL2 = new URL(PROTOCOL + "://localhost:4000/");
+		 ChordWrapper first = new ChordWrapper(localURL1, localURL2,
+		 "peer0/");
+		 System.out.println("Created first peer");
+		
+		 ChordWrapper[] wrappers = new ChordWrapper[nrPeers];
+		 wrappers[0] = first;
+		
+		 for (int i = 1; i < nrPeers; i++) {
+		 int port1 = 8000 + i;
+		 int port2 = 4000 + i;
+		
+		 URL newURL1 = new URL(PROTOCOL + "://localhost:" + port1 + "/");
+		 URL newURL2 = new URL(PROTOCOL + "://localhost:" + port2 + "/");
+		
+		 // localURL (URL for someone in the network) will be known by a
+		 // higher level discovery mechanism
+		 wrappers[i] = new ChordWrapper(newURL1, newURL2, localURL1,
+		 localURL2, "peer" + i + "/");
+		 }
+		
+		 System.out.println("peer[0] is splitting files");
+		 String[] torrentInfo = wrappers[0].uploadFile("IMG_8840.JPG");
+		 System.out.println("peer[0] split ended");
+		
+		 // assumption of knowing the keys
+		 // JUST FOR TESTING peer2 will retreive the picture
+		 System.out.println("Peer 2 is getting peices .. ");
+		 // wrappers[2].downloadFile("retreivedFile.jpg", torrentInfo);
+		 wrappers[2].downloadFile(torrentInfo);
+		 System.out.println("check peer2 folder for a surprise");
+		 // VOALA WE HAVE A DROPBOX
+		
+		 // go to console and try retrieving the hashes, it will work !
+		
+		 } catch (Exception e) {
+		 e.printStackTrace();
+		 System.exit(1);
+		 }
+    }
     public static void main(String[] args) throws Exception{
         System.out.println(TestBasicConversion());
         System.out.println(testWriteTorrentConfig());

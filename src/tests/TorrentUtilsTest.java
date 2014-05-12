@@ -5,7 +5,10 @@ import java.io.IOException;
 
 import org.json.simple.JSONArray;
 
+import de.uniba.wiai.lspi.util.console.parser.ParseException;
+
 import PeerBox.FileManager;
+import PeerBox.TorrentConfig;
 import PeerBox.TorrentUtils;
 
 public class TorrentUtilsTest {
@@ -34,8 +37,20 @@ public class TorrentUtilsTest {
 		String s = new String(bytes);
 		return s.equals(getTestConfigString());
 	}
-	public static void main(String[] args) throws IOException{
+
+    public static boolean testTorrentConfig() throws ParseException, IOException, org.json.simple.parser.ParseException {
+		FileManager fm = new FileManager("tests" + File.separator + "peer_test");
+		TorrentUtils.writeTorrentConfigToFile(fm, "test_torrent.json", getTestConfig());
+
+        TorrentConfig tc = new TorrentConfig(fm.buildFullPath("test_torrent.json"));
+        return tc.getAllKeys().get(0).equals("key1") &&
+               tc.getAllKeys().get(1).equals("key2") &&
+               tc.getAllKeys().get(2).equals("key3");
+    }
+
+	public static void main(String[] args) throws Exception{
 		System.out.println(TestBasicConversion());
 		System.out.println(testWriteTorrentConfig());
+		System.out.println(testTorrentConfig());
 	}
 }

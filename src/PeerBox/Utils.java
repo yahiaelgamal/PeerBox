@@ -2,9 +2,6 @@ package PeerBox;
 
 import java.util.ArrayList;
 
-import org.json.simple.JSONValue;
-import org.json.simple.parser.ParseException;
-
 public class Utils {
 
 	public static ArrayList convertFromArrayToArrayList(Object[] arr) {
@@ -48,7 +45,7 @@ public class Utils {
 	}
 	
 	public static boolean isTorrentFile(byte[] data) {
-		if (((int)data[0]) == 0) {
+		if ((data[0]) == 0) {
 			return false;
 		} else {
 			return true;

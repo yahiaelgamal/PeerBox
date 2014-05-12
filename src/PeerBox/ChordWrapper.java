@@ -28,10 +28,10 @@ import de.uniba.wiai.lspi.chord.service.impl.ChordImpl;
 public class ChordWrapper {
 
 	// use over real network
-	// static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
+//	public static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
 
 	// use for testing on the JVM/thread
-	static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.LOCAL_PROTOCOL);
+	public static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.LOCAL_PROTOCOL);
 
 	public Chord dht1;
 	public Chord dht2;
@@ -104,6 +104,79 @@ public class ChordWrapper {
 		dht2.insert(new Key(hash), Utils.concat(new byte[] {(byte)255}, encryptedTorrent));
 
 		return torrentInfo;
+	}
+	
+	public String[] update(String filename, String[] torrentInfo)throws IOException,
+										InvalidKeyException, NoSuchAlgorithmException,
+										NoSuchPaddingException, InvalidParameterSpecException,
+										IllegalBlockSizeException, BadPaddingException, ServiceException, 
+										InvalidAlgorithmParameterException, ParseException {
+
+		String[] newtorrentInfo = new String[3];
+		byte[] keytemp = Utils.fromHexString(Crypto.generateAESSecret());
+		
+		//get old torrentinfo
+		String hash = torrentInfo[0];
+		byte[] key = Utils.fromHexString(torrentInfo[1]);
+		byte[] iv = Utils.fromHexString(torrentInfo[2]);
+		byte[] torrentBytes = (byte[]) (dht2.retrieve(new Key(hash)).toArray()[0]);
+		
+		// decrypt torrent info
+		byte[] torrentDecrypted = Crypto.decryptAES(torrentBytes, key, iv);
+
+		TorrentConfig torrentJSON = new TorrentConfig(torrentDecrypted);
+		ArrayList<ArrayList<String>> hash_key_ivs = torrentJSON.getAllPiecesInfo();
+		
+		for (int i = 0; i < hash_key_ivs.size(); i++) {
+
+			ArrayList<String> hash_key_iv = hash_key_ivs.get(i);
+			// get piece from DHT using key
+			Set<Serializable> set = getPiece1(new Key(hash_key_iv.get(i)));
+			byte[] pieceBytes = (byte[]) (set.toArray()[0]);
+			this.dht1.remove(new Key(hash_key_iv.get(i)), pieceBytes);
+		}
+		
+		//f(keytemp, keytorr) = keynew
+		byte[] keynew = function(keytemp, key);
+		
+		// divide to pieces, hash, encrypt and insert into DHT1
+		byte[][] pieces = fileManager.splitFiles(filename);
+		String[][] pieceInfo = insertPieces(pieces);
+
+		// generate torrent info
+		TorrentConfig torrent = new TorrentConfig(filename, pieceInfo);
+		byte[] newtorrentBytes = torrent.toJSONString().getBytes();
+
+		// hash and encrypt torrent info. insert into DHT2
+		// hash = torrent info + current time
+		byte[] timeBytes = new SimpleDateFormat("HH:mm:ss").format(
+				Calendar.getInstance().getTime()).getBytes();
+
+		String newhash = Crypto.getMD5Hash(Utils.concat(newtorrentBytes, timeBytes));
+		newtorrentInfo[0] = newhash;
+
+		Object[] encryptionRes = Crypto.encryptAES(newtorrentBytes, keynew);
+		newtorrentInfo[1] = (String) encryptionRes[0];
+		newtorrentInfo[2] = (String) encryptionRes[1];
+		byte[] encryptedTorrent = (byte[]) encryptionRes[2];
+
+		byte value = 0;
+		byte[] temp = {value};
+		
+		Key key2 = new Key(newhash);
+		this.dht2.insert(new Key(hash), Utils.concat(Utils.concat(temp,keytemp), key2.getBytes()));
+		value = (byte) 255;
+		temp = new byte[]{value};
+		this.dht2.insert(key2, Utils.concat(temp,encryptedTorrent));
+		return newtorrentInfo;
+	}
+
+	private byte[] function(byte[] keytemp, byte[] key) {
+		byte[] out = new byte[keytemp.length];
+		int i = 0;
+		for (byte b : keytemp)
+		    out[i] = (byte) (b ^ key[i++]);
+		return out;
 	}
 
 	// naive download. assumes file has not been edited.

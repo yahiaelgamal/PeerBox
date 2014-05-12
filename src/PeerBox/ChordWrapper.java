@@ -1,13 +1,23 @@
 package PeerBox;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.LinkedList;
+import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.Set;
+import java.security.*;
+import java.security.spec.InvalidParameterSpecException;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 import de.uniba.wiai.lspi.chord.console.command.entry.Key;
 import de.uniba.wiai.lspi.chord.data.URL;
@@ -48,99 +58,162 @@ public class ChordWrapper {
             e.printStackTrace();
         }
     }
+    
+ // splits file into pieces and inserts them into DHT1
+	public Object[][] uploadFile(String filename) {
+		try {
+			byte[][] pieces = fileManager.splitFiles(filename);
+			return insertPieces(pieces);
 
-    // assumes pieces of peroper size
-    public Key[] insertPieces(LinkedList<String> pieces) throws IOException, ServiceException {
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ServiceException e) {
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (InvalidKeyException e) {
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			e.printStackTrace();
+		} catch (InvalidParameterSpecException e) {
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 
-        // TODO load the pieces (why save it in the first place)
-        Key[] keys = new Key[pieces.size()];
-        int i =0;
-        for(String filepath : pieces) {
-            File f = new File(filepath);
-            System.out.println("Reading " + filepath);
-            BufferedInputStream bis = new BufferedInputStream( new FileInputStream(f));
-            byte[] buffer = new byte[fileManager.PIECE_SIZE];
-            bis.read(buffer);
-            bis.close();
+	// assumes pieces of proper size
+	public Object[][] insertPieces(byte[][] pieces) throws IOException,
+			ServiceException, NoSuchAlgorithmException, InvalidKeyException,
+			NoSuchPaddingException, InvalidParameterSpecException,
+			IllegalBlockSizeException, BadPaddingException {
 
-            // TODO insert piece
-            System.out.println("sending bytes ..");
-            Key key = insertPiece(buffer);
-            System.out.println("Sent with hash " + key);
-            keys[i] = key;
-            i++;
-        }
-        return keys;
-    }
+		Object[][] hash_key_ivs = new Object[pieces.length][3];
 
-    public Key insertPiece(Serializable data) throws ServiceException  {
-        // TODO hash the piece
-        Key key = new Key(data.hashCode()+"");
+		int i = 0;
+		for (byte[] piece : pieces) {
+			System.out.println("sending bytes ..");
+			hash_key_ivs[i++] = insertPiece(piece);
+		}
 
-        // TODO encrypt the piece
-        this.chord.insert(key, data);
-        return key;
-    }
+		return hash_key_ivs;
+	}
+
+	// hashes, encrypts and inserts piece in DHT1
+	// returns {Key key, byte[] secretKey, byte[] initializationVector}
+	public Object[] insertPiece(byte[] data) throws ServiceException,
+			NoSuchAlgorithmException, NoSuchPaddingException,
+			InvalidKeyException, InvalidParameterSpecException,
+			IllegalBlockSizeException, BadPaddingException,
+			UnsupportedEncodingException {
+		Object[] hash_key_iv = new Object[3];
+
+		// hash data
+		Key key = new Key(EncryptionUtils.getMD5Hash(data));
+		hash_key_iv[0] = key;
+
+		// generate secret key
+		byte[] secretKeyBytes = EncryptionUtils.generateAESSecret();
+		SecretKeySpec secretKey = new SecretKeySpec(secretKeyBytes, "AES");
+		hash_key_iv[1] = secretKeyBytes;
+
+		// encrypt data
+		byte[] encryptedData;
+		byte[][] encResult = EncryptionUtils.encryptAES(data, secretKey);
+		hash_key_iv[2] = encResult[0];
+		encryptedData = encResult[1];
+
+		// add data to dht
+		this.chord.insert(key, encryptedData);
+
+//		System.out.println("Inserted with hash "
+//				+ ((Key) (hash_key_iv[0])).toString() + ", secretKey "
+//				+ ((byte[]) hash_key_iv[1]).toString() + " and IV "
+//				+ ((byte[]) hash_key_iv[2]).toString());
+
+		return hash_key_iv;
+	}
 
     public Set<Serializable> getPiece(Key key) throws ServiceException {
         return this.chord.retrieve(key);
     }
 
-    public static void main(String[] args){
+	public void downloadFile(String filename, Object[][] hash_key_IVs)
+			throws ServiceException, IOException, NoSuchAlgorithmException,
+			NoSuchPaddingException, IllegalBlockSizeException,
+			BadPaddingException, InvalidKeyException,
+			InvalidAlgorithmParameterException {
+		FileOutputStream fos = new FileOutputStream(
+				fileManager.buildFullPath(filename), true);
 
-        System.out.println(System.getProperty("java.class.path"));
-        int nrPeers = 10;
-        try {
-            PropertiesLoader.loadPropertyFile();
+		byte[] pieceBytes, decryptedBytes;
+		for (int i = 0; i < hash_key_IVs.length; i++) {
+			System.out.println("Getting piece " + i);
 
-            URL localURL = new URL(PROTOCOL + "://localhost:8000/");
-            ChordWrapper first = new ChordWrapper(localURL, "peer0/");
-            System.out.println("Created first peer");
+			// get piece from DHT using key
+			System.out.println("hash: 			" + ((Key)hash_key_IVs[i][0])); 
+			Set<Serializable> set = getPiece((Key) hash_key_IVs[i][0]);
+			pieceBytes = (byte[]) (set.toArray()[0]);
 
+			// secret key and IV
+			byte[] secretKey = (byte[]) hash_key_IVs[i][1];
+			System.out.println("secert key: 		" + EncryptionUtils.toHexString(secretKey));
+			byte[] iv = (byte[]) hash_key_IVs[i][2];
+			System.out.println("iv: 			" + EncryptionUtils.toHexString(iv));
+			
+			// decrypt piece
+			decryptedBytes = EncryptionUtils.decryptAES(pieceBytes, secretKey, iv);
+			
+			// write pieces to file
+			fos.write(decryptedBytes);
+			fos.flush();
+		}
+		fos.close();
+	}
 
-            ChordWrapper[] wrappers = new ChordWrapper[nrPeers];
-            wrappers[0] = first;
+	public static void main(String[] args) {
+		System.out.println(System.getProperty("java.class.path"));
+		int nrPeers = 10;
+		try {
+			PropertiesLoader.loadPropertyFile();
 
-            for(int i = 1; i < nrPeers; i++) {
-                int port = 8000 + i;
+			URL localURL = new URL(PROTOCOL + "://localhost:8000/");
+			ChordWrapper first = new ChordWrapper(localURL, "peer0/");
+			System.out.println("Created first peer");
 
-                URL newURL = new URL(PROTOCOL + "://localhost:" + port + "/");
+			ChordWrapper[] wrappers = new ChordWrapper[nrPeers];
+			wrappers[0] = first;
 
-                // localURL (URL for someone in the network) will be known by a
-                // higher level discovery mechanism
-                wrappers[i] = new ChordWrapper(newURL, localURL, "peer"+i+"/");
-            }
+			for (int i = 1; i < nrPeers; i++) {
+				int port = 8000 + i;
 
-            System.out.println("peer[0] is splitting files");
-            LinkedList<String> pieces = wrappers[0].fileManager.splitFiles("IMG_8840.JPG");
-            System.out.println("peer[0] split ended");
+				URL newURL = new URL(PROTOCOL + "://localhost:" + port + "/");
 
-            Key[] keys = wrappers[0].insertPieces(pieces);
+				// localURL (URL for someone in the network) will be known by a
+				// higher level discovery mechanism
+				wrappers[i] = new ChordWrapper(newURL, localURL, "peer" + i
+						+ "/");
+			}
 
-            // assumption of knowing the keys
-            // JUST FOR TESTING peer2 will retreive the picture
-            FileOutputStream fos = new FileOutputStream(
-                    wrappers[2].fileManager.buildFullPath("retrievedFile.jpg"),true);
+			System.out.println("peer[0] is splitting files");
+			Object[][] keysAndIVs = wrappers[0].uploadFile("IMG_8840.JPG");
+			System.out.println("peer[0] split ended");
 
+			// assumption of knowing the keys
+			// JUST FOR TESTING peer2 will retreive the picture
+			System.out.println("Peer 2 is getting peices .. ");
+			wrappers[2].downloadFile("retreivedFile.jpg", keysAndIVs);
+			System.out.println("check peer2 folder for a surprise");
+			// VOALA WE HAVE A DROPBOX
 
-            System.out.println("Peer 2 is getting peices .. ");
-            byte[] fileBytes;
-            for(int i = 0; i< keys.length; i++) {
-                System.out.println("Getting piece " + i);
-                Set<Serializable> set = wrappers[2].getPiece(keys[i]);
-                fileBytes = (byte[])set.toArray()[0];
-                fos.write(fileBytes);
-                fos.flush();
-            }
-            fos.close();
-            System.out.println("check peer2 folder for a surprise");
-            // VOALA WE HAVE A DROPBOX
+			// go to console and try retrieving the hashes, it will work !
 
-            // go to console and try retrieving the hashes, it will work !
-
-        }catch (Exception e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-    }
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
+	}
 }

@@ -23,32 +23,23 @@ public class FileSplitAndMerge {
         fos.close();
         fos = null;
     }
-
-    // Returns list of paths to split files
-    public static LinkedList<String> splitFile(File f) throws IOException {
-        LinkedList<String> paths = new LinkedList<String>();
-        BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
-        String name = f.getName();
-        int partCounter = 1;
-
-        // sizeOfFiles = 512 KB, can be customized to our needs
-        int sizeOfFiles = 512 * 1024;    // need to be synced with FileManager.PIECE_SIZE
-        byte[] buffer = new byte[sizeOfFiles];
-        String path;
-        while ((bis.read(buffer)) > 0) {
-            path = f.getParent()+File.separator+name+"."+String.format("%1d", partCounter++);
-            FileManager.writeToAbsoluteFile(path, buffer);
-            paths.add(path);
+    
+    public static byte[][] splitFile(File f) throws IOException {
+    	BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
+    	
+    	int sizeOfPiece = 512 * 1024;
+    	int numPieces = (int) Math.ceil(f.length() * 1.0 / sizeOfPiece);
+    	
+    	byte[][] pieces = new byte[numPieces][sizeOfPiece];
+    	
+        int i = 0;
+        byte[] buffer = new byte[sizeOfPiece];
+        while (bis.read(buffer) > 0) {
+        	pieces[i++] = buffer.clone();
         }
-
+        
         bis.close();
-        return paths;
-    }
-
-    public static void main(String[] args) throws IOException {
-        LinkedList<String> paths = splitFile(
-                new File("/Users/macbokpro/Music/iERA/Self Discovery.mp3"));
-        mergeFiles("/Users/macbokpro/Music/iERA/Self Discovery2.mp3", paths);
+        return pieces;
     }
 
 }

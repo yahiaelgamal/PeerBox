@@ -27,12 +27,12 @@ public class FileManager {
     public String buildFullPath(String relativePath) {
         return workingDir + File.separator + relativePath;
     }
-
-    public LinkedList<String> splitFiles(String relativePathToFile) throws IOException {
-        File f = new File(buildFullPath(relativePathToFile));
-        LinkedList <String> splitted = FileSplitAndMerge.splitFile(f);
-        return splitted;
-    }
+    
+	public byte[][] splitFiles(String relativePathToFile) throws IOException {
+		File f = new File(buildFullPath(relativePathToFile));
+		byte[][] splitted = FileSplitAndMerge.splitFile(f);
+		return splitted;
+	}
 
     public boolean writeToRelativeFile(String relativePath, byte[] content) {
         String fullPath = buildFullPath(relativePath);

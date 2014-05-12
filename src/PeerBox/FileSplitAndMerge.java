@@ -9,6 +9,7 @@ import java.util.LinkedList;
 // Splits files, format independent and merges them back
 public class FileSplitAndMerge {
 
+	// not used
     public static void mergeFiles(String filename, LinkedList<String> paths) throws IOException{
         File out = new File(filename);
         FileOutputStream fos;

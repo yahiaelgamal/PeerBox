@@ -17,29 +17,34 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class EncryptionUtils {
-	
+
+	// generates a 128-bit AES key
 	public static byte[] generateAESSecret() throws NoSuchAlgorithmException {
 		KeyGenerator kgen = KeyGenerator.getInstance("AES");
 		kgen.init(128);
 		SecretKey skey = kgen.generateKey();
 		byte[] raw = skey.getEncoded();
 
-//		System.out.println("Secret Key: 	" + toHexString(raw));
-		
+		// System.out.println("Secret Key: 	" + toHexString(raw));
+
 		return raw;
 	}
-	
-	public static String getMD5Hash(byte[] data) throws NoSuchAlgorithmException {
+
+	// returns MD5 digest of given data as a string
+	public static String getMD5Hash(byte[] data)
+			throws NoSuchAlgorithmException {
 		MessageDigest md5 = MessageDigest.getInstance("MD5");
 		byte[] hash = md5.digest(data);
 
-//		String hashString = toHexString(hash);
+		// String hashString = toHexString(hash);
 		String hashString = new BigInteger(1, hash).toString(16);
-//		System.out.println("Hash: 		" + hashString);
-		
+		// System.out.println("Hash: 		" + hashString);
+
 		return hashString;
 	}
 
+	// encrypts data using AES with key secretKey
+	// returns byte[][] {initialization vector, encrypted data}
 	public static byte[][] encryptAES(byte[] data, SecretKeySpec secretKey)
 			throws NoSuchAlgorithmException, NoSuchPaddingException,
 			IllegalBlockSizeException, BadPaddingException,
@@ -49,13 +54,14 @@ public class EncryptionUtils {
 
 		byte[] iv = cipher.getParameters()
 				.getParameterSpec(IvParameterSpec.class).getIV();
-//		System.out.println("iv:	 	" + toHexString(iv));
-		
+		// System.out.println("iv:	 	" + toHexString(iv));
+
 		byte[] encryptedData = cipher.doFinal(data);
-		
+
 		return new byte[][] { iv, encryptedData };
 	}
-	
+
+	// decrypts data using AES given key secretKey an initialization vector iv
 	public static byte[] decryptAES(byte[] data, byte[] secretKey, byte[] iv)
 			throws NoSuchAlgorithmException, NoSuchPaddingException,
 			InvalidKeyException, InvalidAlgorithmParameterException,
@@ -66,7 +72,8 @@ public class EncryptionUtils {
 		byte[] decryptedBytes = cipher.doFinal(data);
 		return decryptedBytes;
 	}
-	
+
+	// encodes bytes as hexadecimal string
 	public static String toHexString(byte[] bytes) {
 		String string = "";
 		for (int i = 0; i < bytes.length; i++) {
@@ -78,15 +85,15 @@ public class EncryptionUtils {
 		}
 		return string;
 	}
-	
-	public static byte[] fromHexString(String s) {
-	    int len = s.length();
-	    byte[] data = new byte[len / 2];
-	    for (int i = 0; i < len; i += 2) {
-	        data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-	                             + Character.digit(s.charAt(i+1), 16));
-	    }
-	    return data;
-	}
 
+	// decodes hexadecimal string back to bytes
+	public static byte[] fromHexString(String s) {
+		int len = s.length();
+		byte[] data = new byte[len / 2];
+		for (int i = 0; i < len; i += 2) {
+			data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character
+					.digit(s.charAt(i + 1), 16));
+		}
+		return data;
+	}
 }

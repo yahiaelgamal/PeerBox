@@ -2,10 +2,13 @@ package PeerBox;
 
 import java.util.ArrayList;
 
+import org.json.simple.JSONValue;
+import org.json.simple.parser.ParseException;
+
 public class Utils {
 
 	public static ArrayList convertFromArrayToArrayList(Object[] arr) {
-		ArrayList list = new ArrayList<>();
+		ArrayList list = new ArrayList();
 		for(Object obj : arr) {
 			list.add(obj);
 		}
@@ -42,5 +45,13 @@ public class Utils {
 		System.arraycopy(A, 0, C, 0, aLen);
 		System.arraycopy(B, 0, C, aLen, bLen);
 		return C;
+	}
+	
+	public static boolean isTorrentFile(byte[] data) {
+		if (((int)data[0]) == 0) {
+			return false;
+		} else {
+			return true;
+		}
 	}
 }

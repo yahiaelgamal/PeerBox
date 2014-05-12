@@ -7,11 +7,13 @@ import java.io.UnsupportedEncodingException;
 import java.util.Set;
 import java.security.*;
 import java.security.spec.InvalidParameterSpecException;
+import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
+import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
 
 import de.uniba.wiai.lspi.chord.console.command.entry.Key;
@@ -25,16 +27,19 @@ public class ChordWrapper {
 
 	// use over real network
 	static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
-
+	PublicKey publicKey;
+	PrivateKey privateKey;
 	// use for testing on the JVM/thread
 	// String static PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.LOCAL_PROTOCOL);
 
 	public Chord dht1;
 	public Chord dht2;
+	public Chord dht3;
 	public FileManager fileManager;
 
 	// In case of a creator
-	public ChordWrapper(URL myURL1, URL myURL2, String myFolder) {
+	public ChordWrapper(URL myURL1, URL myURL2, URL myURL3, 
+			String myFolder, PublicKey publicKey, PrivateKey privateKey) {
 		try {
 			this.dht1 = new ChordImpl();
 			this.dht1.create(myURL1);
@@ -42,15 +47,23 @@ public class ChordWrapper {
 			this.dht2 = new ChordImpl();
 			this.dht2.create(myURL2);
 
+			this.dht3 = new ChordImpl();
+			this.dht3.create(myURL3);
+			
 			this.fileManager = new FileManager(myFolder);
+			
+		    this.publicKey = publicKey;
+		    this.privateKey = privateKey;
+		    
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
 	// In case of bootstraper
-	public ChordWrapper(URL myURL1, URL myURL2, URL bootstrapURL1,
-			URL bootstrapURL2, String myFolder) {
+	public ChordWrapper(URL myURL1, URL myURL2, URL myURL3, URL bootstrapURL1,
+			URL bootstrapURL2, URL bootstrapURL3, String myFolder,
+			PublicKey publicKey, PrivateKey privateKey) {
 		try {
 			this.dht1 = new ChordImpl();
 			this.dht1.join(myURL1, bootstrapURL1);
@@ -58,7 +71,14 @@ public class ChordWrapper {
 			this.dht2 = new ChordImpl();
 			this.dht2.join(myURL2, bootstrapURL2);
 
+				
+			this.dht3 = new ChordImpl();
+			this.dht3.join(myURL3, bootstrapURL3);
+			
 			this.fileManager = new FileManager(myFolder);
+			
+			this.publicKey = publicKey;
+			this.privateKey = privateKey;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -229,33 +249,80 @@ public class ChordWrapper {
 	private Set<Serializable> getPiece2(Key key) throws ServiceException {
 		return this.dht2.retrieve(key);
 	}
+	
+	private Set<Serializable> getPiece3(Key key) throws ServiceException {
+		return this.dht3.retrieve(key);
+	}
+	
+	// Sends torrentHash, torrentKey and IV encrypted using PK_receiver
+	// Assumes DHT3 with mapping receiverUniqueAddress -> PK_receiver
+	// Tries for sending directly to receiver, and if fails sends to 
+	// bootstrapping DNS which will keep them for forwarding
+	public boolean shareFile(String torrentHash, String torrentKey,
+			String IV, String receiverUniqueAddress) {
+		try {
+			//prepare 
+			Set<Serializable> PK_receiver = getPiece3(new Key(receiverUniqueAddress));			
+			JSONObject data = new JSONObject();
+			data.put("torrentHash", torrentHash);
+			data.put("torrentKey", torrentKey);
+			data.put("IV", IV);
+			byte[] dataBytes = data.toJSONString().getBytes();
+			
+			byte[] encrypted = EncryptionUtils.encryptWithPK(
+					(PublicKey)PK_receiver.toArray()[0], dataBytes);
+			
+			
+			
+		} catch (ServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return false;
+	}
 
 	public static void main(String[] args) {
 		System.out.println(System.getProperty("java.class.path"));
 		int nrPeers = 10;
 		try {
+			
 			PropertiesLoader.loadPropertyFile();
-
-			URL localURL1 = new URL(PROTOCOL + "://localhost:8000/");
-			URL localURL2 = new URL(PROTOCOL + "://localhost:4000/");
-			ChordWrapper first = new ChordWrapper(localURL1, localURL2,
-					"peer0/");
+			
+			URL localURL1 = new URL(PROTOCOL + "://localhost:4000/");
+			URL localURL2 = new URL(PROTOCOL + "://localhost:6000/");
+			URL localURL3 = new URL(PROTOCOL + "://localhost:8000/");
+			
+			// create public key
+		    final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+		    keyGen.initialize(1024);
+		    KeyPair key = keyGen.generateKeyPair();
+		    PublicKey publicKey = key.getPublic();
+		    PrivateKey privateKey = key.getPrivate();
+		    
+		    
+			ChordWrapper first = new ChordWrapper(localURL1, localURL2, 
+					localURL3, "peer0/", publicKey, privateKey);
 			System.out.println("Created first peer");
 
 			ChordWrapper[] wrappers = new ChordWrapper[nrPeers];
 			wrappers[0] = first;
 
 			for (int i = 1; i < nrPeers; i++) {
-				int port1 = 8000 + i;
-				int port2 = 4000 + i;
-
+				int port1 = 4000 + i;
+				int port2 = 6000 + i;
+				int port3 = 8000 + i;
+				
 				URL newURL1 = new URL(PROTOCOL + "://localhost:" + port1 + "/");
 				URL newURL2 = new URL(PROTOCOL + "://localhost:" + port2 + "/");
+				URL newURL3 = new URL(PROTOCOL + "://localhost:" + port3 + "/");
 
+				key = keyGen.generateKeyPair();
+			    publicKey = key.getPublic();
+			    privateKey = key.getPrivate();
 				// localURL (URL for someone in the network) will be known by a
 				// higher level discovery mechanism
-				wrappers[i] = new ChordWrapper(newURL1, newURL2, localURL1,
-						localURL2, "peer" + i + "/");
+				wrappers[i] = new ChordWrapper(newURL1, newURL2, newURL3, localURL1,
+						localURL2, localURL3, "peer" + i + "/", publicKey, privateKey);
 			}
 
 			System.out.println("peer[0] is splitting files");

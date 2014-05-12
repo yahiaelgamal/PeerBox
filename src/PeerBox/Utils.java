@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public class Utils {
 
 	public static ArrayList convertFromArrayToArrayList(Object[] arr) {
-		ArrayList list = new ArrayList<>();
+		ArrayList list = new ArrayList();
 		for(Object obj : arr) {
 			list.add(obj);
 		}
@@ -42,5 +42,13 @@ public class Utils {
 		System.arraycopy(A, 0, C, 0, aLen);
 		System.arraycopy(B, 0, C, aLen, bLen);
 		return C;
+	}
+	
+	public static boolean isTorrentFile(byte[] data) {
+		if ((data[0]) == 0) {
+			return false;
+		} else {
+			return true;
+		}
 	}
 }

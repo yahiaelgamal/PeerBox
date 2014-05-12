@@ -17,10 +17,16 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class Crypto {
 
+	public static final String HASH_ALGO = "MD5";
+
+	public static final String ENCRYPTION_ALGO = "AES";
+	public static final String ENCRYPTION_CONFIG = "AES/CBC/PKCS5Padding";
+	public static final int SECRET_KEY_LEN = 128 / 8;
+
 	// generates a 128-bit AES key
 	public static String generateAESSecret() throws NoSuchAlgorithmException {
-		KeyGenerator kgen = KeyGenerator.getInstance("AES");
-		kgen.init(128);
+		KeyGenerator kgen = KeyGenerator.getInstance(ENCRYPTION_ALGO);
+		kgen.init(SECRET_KEY_LEN * 8);
 		SecretKey skey = kgen.generateKey();
 		byte[] raw = skey.getEncoded();
 
@@ -30,14 +36,14 @@ public class Crypto {
 	// returns MD5 digest of given data as a string
 	public static String getMD5Hash(byte[] data)
 			throws NoSuchAlgorithmException {
-		MessageDigest md5 = MessageDigest.getInstance("MD5");
+		MessageDigest md5 = MessageDigest.getInstance(HASH_ALGO);
 		byte[] hash = md5.digest(data);
 
 		return Utils.toHexString(hash);
 	}
 
 	// encrypts data using AES with key secretKey
-	// returns Object[] 
+	// returns Object[]
 	// {String secretKey, String initializationVector, byte[] encryptedData}
 	public static Object[] encryptAES(byte[] data)
 			throws NoSuchAlgorithmException, NoSuchPaddingException,
@@ -46,9 +52,10 @@ public class Crypto {
 
 		String secretKeyString = generateAESSecret();
 		byte[] secretKeyBytes = Utils.fromHexString(secretKeyString);
-		SecretKeySpec secretKey = new SecretKeySpec(secretKeyBytes, "AES");
-		
-		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+		SecretKeySpec secretKey = new SecretKeySpec(secretKeyBytes,
+				ENCRYPTION_ALGO);
+
+		Cipher cipher = Cipher.getInstance(ENCRYPTION_CONFIG);
 		cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 
 		byte[] iv = cipher.getParameters()
@@ -57,7 +64,8 @@ public class Crypto {
 
 		byte[] encryptedData = cipher.doFinal(data);
 
-		return new Object[] { Utils.toHexString(secretKeyBytes), Utils.toHexString(iv), encryptedData };
+		return new Object[] { Utils.toHexString(secretKeyBytes),
+				Utils.toHexString(iv), encryptedData };
 	}
 	
 	// encrypts data using AES with key
@@ -89,10 +97,14 @@ public class Crypto {
 			throws NoSuchAlgorithmException, NoSuchPaddingException,
 			InvalidKeyException, InvalidAlgorithmParameterException,
 			IllegalBlockSizeException, BadPaddingException {
-		SecretKeySpec secret = new SecretKeySpec(secretKey, "AES");
-		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+		SecretKeySpec secret = new SecretKeySpec(secretKey, ENCRYPTION_ALGO);
+		Cipher cipher = Cipher.getInstance(ENCRYPTION_CONFIG);
 		cipher.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(iv));
 		byte[] decryptedBytes = cipher.doFinal(data);
 		return decryptedBytes;
+	}
+
+	public static int getDigestLength() throws NoSuchAlgorithmException {
+		return MessageDigest.getInstance(HASH_ALGO).getDigestLength();
 	}
 }

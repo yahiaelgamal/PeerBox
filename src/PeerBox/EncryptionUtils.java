@@ -19,15 +19,13 @@ import javax.crypto.spec.SecretKeySpec;
 public class EncryptionUtils {
 
 	// generates a 128-bit AES key
-	public static byte[] generateAESSecret() throws NoSuchAlgorithmException {
+	public static String generateAESSecret() throws NoSuchAlgorithmException {
 		KeyGenerator kgen = KeyGenerator.getInstance("AES");
 		kgen.init(128);
 		SecretKey skey = kgen.generateKey();
 		byte[] raw = skey.getEncoded();
 
-		// System.out.println("Secret Key: 	" + toHexString(raw));
-
-		return raw;
+		return toHexString(raw);
 	}
 
 	// returns MD5 digest of given data as a string
@@ -36,16 +34,12 @@ public class EncryptionUtils {
 		MessageDigest md5 = MessageDigest.getInstance("MD5");
 		byte[] hash = md5.digest(data);
 
-		// String hashString = toHexString(hash);
-		String hashString = new BigInteger(1, hash).toString(16);
-		// System.out.println("Hash: 		" + hashString);
-
-		return hashString;
+		return toHexString(hash);
 	}
 
 	// encrypts data using AES with key secretKey
-	// returns byte[][] {initialization vector, encrypted data}
-	public static byte[][] encryptAES(byte[] data, SecretKeySpec secretKey)
+	// returns Object[] {String initializationVector, byte[] encryptedData}
+	public static Object[] encryptAES(byte[] data, SecretKeySpec secretKey)
 			throws NoSuchAlgorithmException, NoSuchPaddingException,
 			IllegalBlockSizeException, BadPaddingException,
 			InvalidKeyException, InvalidParameterSpecException {
@@ -58,7 +52,7 @@ public class EncryptionUtils {
 
 		byte[] encryptedData = cipher.doFinal(data);
 
-		return new byte[][] { iv, encryptedData };
+		return new Object[] { toHexString(iv), encryptedData };
 	}
 
 	// decrypts data using AES given key secretKey an initialization vector iv

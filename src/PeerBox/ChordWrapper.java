@@ -55,7 +55,7 @@ public class ChordWrapper {
 
 	// splits file into pieces, hashes and encrypts each, and inserts them into
 	// DHT1
-	public Object[][] uploadFile(String filename) {
+	public String[][] uploadFile(String filename) {
 		try {
 			byte[][] pieces = fileManager.splitFiles(filename);
 			return insertPieces(pieces);
@@ -81,8 +81,8 @@ public class ChordWrapper {
 	}
 
 	// gets required pieces from DHT1, decrypts each, and combines them into
-	// file
-	public void downloadFile(String filename, Object[][] hash_key_IVs)
+	// file with name filename
+	public void downloadFile(String filename, String[][] hash_key_ivs)
 			throws ServiceException, IOException, NoSuchAlgorithmException,
 			NoSuchPaddingException, IllegalBlockSizeException,
 			BadPaddingException, InvalidKeyException,
@@ -91,16 +91,18 @@ public class ChordWrapper {
 				fileManager.buildFullPath(filename), true);
 
 		byte[] pieceBytes, decryptedBytes;
-		for (int i = 0; i < hash_key_IVs.length; i++) {
+		for (int i = 0; i < hash_key_ivs.length; i++) {
 			System.out.println("Getting piece " + i);
+			
+			String[] hash_key_iv = hash_key_ivs[i];
 
 			// get piece from DHT using key
-			Set<Serializable> set = getPiece((Key) hash_key_IVs[i][0]);
+			Set<Serializable> set = getPiece(new Key(hash_key_iv[0]));
 			pieceBytes = (byte[]) (set.toArray()[0]);
 
 			// secret key and IV
-			byte[] secretKey = (byte[]) hash_key_IVs[i][1];
-			byte[] iv = (byte[]) hash_key_IVs[i][2];
+			byte[] secretKey = EncryptionUtils.fromHexString(hash_key_iv[1]);
+			byte[] iv = EncryptionUtils.fromHexString(hash_key_iv[2]);
 
 			// decrypt piece
 			decryptedBytes = EncryptionUtils.decryptAES(pieceBytes, secretKey,
@@ -117,12 +119,12 @@ public class ChordWrapper {
 	
 	// returns Object[][] where each element represents a piece
 	// and each piece is represented as {Key key, byte[] secretKey, byte[] initializationVector}
-	private Object[][] insertPieces(byte[][] pieces) throws IOException,
+	private String[][] insertPieces(byte[][] pieces) throws IOException,
 			ServiceException, NoSuchAlgorithmException, InvalidKeyException,
 			NoSuchPaddingException, InvalidParameterSpecException,
 			IllegalBlockSizeException, BadPaddingException {
 
-		Object[][] hash_key_ivs = new Object[pieces.length][3];
+		String[][] hash_key_ivs = new String[pieces.length][3];
 
 		int i = 0;
 		for (byte[] piece : pieces) {
@@ -135,27 +137,29 @@ public class ChordWrapper {
 
 	// hashes, encrypts and inserts piece in DHT1
 	// returns {Key key, byte[] secretKey, byte[] initializationVector}
-	private Object[] insertPiece(byte[] data) throws ServiceException,
+	private String[] insertPiece(byte[] data) throws ServiceException,
 			NoSuchAlgorithmException, NoSuchPaddingException,
 			InvalidKeyException, InvalidParameterSpecException,
 			IllegalBlockSizeException, BadPaddingException,
 			UnsupportedEncodingException {
-		Object[] hash_key_iv = new Object[3];
+		String[] hash_key_iv = new String[3];
 
 		// hash data
-		Key key = new Key(EncryptionUtils.getMD5Hash(data));
-		hash_key_iv[0] = key;
+		String keyString = EncryptionUtils.getMD5Hash(data); 
+		Key key = new Key(keyString);
+		hash_key_iv[0] = keyString;
 
 		// generate secret key
-		byte[] secretKeyBytes = EncryptionUtils.generateAESSecret();
+		String secretKeyString = EncryptionUtils.generateAESSecret();
+		byte[] secretKeyBytes = EncryptionUtils.fromHexString(secretKeyString);
 		SecretKeySpec secretKey = new SecretKeySpec(secretKeyBytes, "AES");
-		hash_key_iv[1] = secretKeyBytes;
+		hash_key_iv[1] = secretKeyString;
 
 		// encrypt data
 		byte[] encryptedData;
-		byte[][] encResult = EncryptionUtils.encryptAES(data, secretKey);
-		hash_key_iv[2] = encResult[0];
-		encryptedData = encResult[1];
+		Object[] encResult = EncryptionUtils.encryptAES(data, secretKey);
+		hash_key_iv[2] = (String) encResult[0];
+		encryptedData = (byte []) encResult[1];
 
 		// add data to dht
 		this.chord.insert(key, encryptedData);
@@ -192,7 +196,7 @@ public class ChordWrapper {
 			}
 
 			System.out.println("peer[0] is splitting files");
-			Object[][] keysAndIVs = wrappers[0].uploadFile("IMG_8840.JPG");
+			String[][] keysAndIVs = wrappers[0].uploadFile("IMG_8840.JPG");
 			System.out.println("peer[0] split ended");
 
 			// assumption of knowing the keys

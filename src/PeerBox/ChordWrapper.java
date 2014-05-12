@@ -4,6 +4,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.security.*;
 import java.security.spec.InvalidParameterSpecException;
@@ -69,66 +75,57 @@ public class ChordWrapper {
 	// it into DHT2
 	// returns torrent info in the form
 	// {String torrentHash, String torrentKey, String iv}
-	public String[] uploadFile(String filename) {
-		try {
-			String[] torrentInfo = new String[3];
+	public String[] uploadFile(String filename) throws IOException,
+			InvalidKeyException, NoSuchAlgorithmException,
+			NoSuchPaddingException, InvalidParameterSpecException,
+			IllegalBlockSizeException, BadPaddingException, ServiceException {
 
-			// divide to pieces, hash, encrypt and insert into DHT1
-			byte[][] pieces = fileManager.splitFiles(filename);
-			String[][] pieceInfo = insertPieces(pieces);
+		String[] torrentInfo = new String[3];
 
-			// generate torrent info
-			TorrentConfig torrent = new TorrentConfig(pieceInfo);
-			byte[] torrentJSON = torrent.toJSONString().getBytes();
+		// divide to pieces, hash, encrypt and insert into DHT1
+		byte[][] pieces = fileManager.splitFiles(filename);
+		String[][] pieceInfo = insertPieces(pieces);
 
-			// hash and encrypt torrent info. insert into DHT2
-			String hash = EncryptionUtils.getMD5Hash(torrentJSON);
-			torrentInfo[0] = hash;
+		// generate torrent info
+		TorrentConfig torrent = new TorrentConfig(pieceInfo);
+		byte[] torrentBytes = torrent.toJSONString().getBytes();
 
-			Object[] encryptionRes = EncryptionUtils.encryptAES(torrentJSON);
-			torrentInfo[1] = (String) encryptionRes[0];
-			torrentInfo[2] = (String) encryptionRes[1];
-			byte[] encryptedTorrent = (byte[]) encryptionRes[2];
+		// hash and encrypt torrent info. insert into DHT2
+		// hash = torrent info + current time
+		byte[] timeBytes = new SimpleDateFormat("HH:mm:ss").format(
+				Calendar.getInstance().getTime()).getBytes();
+		
+		String hash = Crypto.getMD5Hash(Utils.concat(torrentBytes, timeBytes));
+		torrentInfo[0] = hash;
 
-			dht2.insert(new Key(hash), encryptedTorrent);
+		Object[] encryptionRes = Crypto.encryptAES(torrentBytes);
+		torrentInfo[1] = (String) encryptionRes[0];
+		torrentInfo[2] = (String) encryptionRes[1];
+		byte[] encryptedTorrent = (byte[]) encryptionRes[2];
 
-			return torrentInfo;
+		dht2.insert(new Key(hash), encryptedTorrent);
 
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ServiceException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		} catch (InvalidKeyException e) {
-			e.printStackTrace();
-		} catch (NoSuchPaddingException e) {
-			e.printStackTrace();
-		} catch (InvalidParameterSpecException e) {
-			e.printStackTrace();
-		} catch (IllegalBlockSizeException e) {
-			e.printStackTrace();
-		} catch (BadPaddingException e) {
-			e.printStackTrace();
-		}
-		return null;
+		return torrentInfo;
 	}
 
+	// naive download. assumes file has not been edited.
+	// downloads file given its torrent info (hash, key and iv)
 	public void downloadFile(String filename, String[] torrentInfo)
 			throws InvalidKeyException, NoSuchAlgorithmException,
 			NoSuchPaddingException, IllegalBlockSizeException,
 			BadPaddingException, InvalidAlgorithmParameterException,
 			ServiceException, IOException, ParseException {
-		
+
 		// get encrypted torrent info from dht2
 		String hash = torrentInfo[0];
-		byte[] key = EncryptionUtils.fromHexString(torrentInfo[1]);
-		byte[] iv = EncryptionUtils.fromHexString(torrentInfo[2]);
+		byte[] key = Utils.fromHexString(torrentInfo[1]);
+		byte[] iv = Utils.fromHexString(torrentInfo[2]);
 		byte[] torrentBytes = (byte[]) (getPiece2(new Key(hash)).toArray()[0]);
-		
+
 		// decrypt torrent info
-		byte[] torrentDecrypted = EncryptionUtils.decryptAES(torrentBytes, key, iv);
-		
+		byte[] torrentDecrypted = Crypto.decryptAES(torrentBytes, key,
+				iv);
+
 		TorrentConfig torrentJSON = new TorrentConfig(torrentDecrypted);
 		String[][] hash_key_ivs = torrentJSON.getAllPiecesInfo();
 
@@ -158,11 +155,11 @@ public class ChordWrapper {
 
 			// secret key and IV
 			// consider changing! we convert byte[] to string and back to byte[]
-			byte[] secretKey = EncryptionUtils.fromHexString(hash_key_iv[1]);
-			byte[] iv = EncryptionUtils.fromHexString(hash_key_iv[2]);
+			byte[] secretKey = Utils.fromHexString(hash_key_iv[1]);
+			byte[] iv = Utils.fromHexString(hash_key_iv[2]);
 
 			// decrypt piece
-			decryptedBytes = EncryptionUtils.decryptAES(pieceBytes, secretKey,
+			decryptedBytes = Crypto.decryptAES(pieceBytes, secretKey,
 					iv);
 
 			// write pieces to file
@@ -203,7 +200,7 @@ public class ChordWrapper {
 		String[] hash_key_iv = new String[3];
 
 		// hash data
-		String keyString = EncryptionUtils.getMD5Hash(data);
+		String keyString = Crypto.getMD5Hash(data);
 		Key key = new Key(keyString);
 		hash_key_iv[0] = keyString;
 
@@ -211,7 +208,7 @@ public class ChordWrapper {
 
 		// encrypt data
 		byte[] encryptedData;
-		Object[] encResult = EncryptionUtils.encryptAES(data);
+		Object[] encResult = Crypto.encryptAES(data);
 		hash_key_iv[1] = (String) encResult[0];
 		hash_key_iv[2] = (String) encResult[1];
 		encryptedData = (byte[]) encResult[2];
@@ -225,7 +222,7 @@ public class ChordWrapper {
 	private Set<Serializable> getPiece1(Key key) throws ServiceException {
 		return this.dht1.retrieve(key);
 	}
-	
+
 	private Set<Serializable> getPiece2(Key key) throws ServiceException {
 		return this.dht2.retrieve(key);
 	}

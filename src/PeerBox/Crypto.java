@@ -1,6 +1,5 @@
 package PeerBox;
 
-import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -16,7 +15,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-public class EncryptionUtils {
+public class Crypto {
 
 	// generates a 128-bit AES key
 	private static String generateAESSecret() throws NoSuchAlgorithmException {
@@ -25,7 +24,7 @@ public class EncryptionUtils {
 		SecretKey skey = kgen.generateKey();
 		byte[] raw = skey.getEncoded();
 
-		return toHexString(raw);
+		return Utils.toHexString(raw);
 	}
 
 	// returns MD5 digest of given data as a string
@@ -34,7 +33,7 @@ public class EncryptionUtils {
 		MessageDigest md5 = MessageDigest.getInstance("MD5");
 		byte[] hash = md5.digest(data);
 
-		return toHexString(hash);
+		return Utils.toHexString(hash);
 	}
 
 	// encrypts data using AES with key secretKey
@@ -45,8 +44,8 @@ public class EncryptionUtils {
 			IllegalBlockSizeException, BadPaddingException,
 			InvalidKeyException, InvalidParameterSpecException {
 
-		String secretKeyString = EncryptionUtils.generateAESSecret();
-		byte[] secretKeyBytes = EncryptionUtils.fromHexString(secretKeyString);
+		String secretKeyString = generateAESSecret();
+		byte[] secretKeyBytes = Utils.fromHexString(secretKeyString);
 		SecretKeySpec secretKey = new SecretKeySpec(secretKeyBytes, "AES");
 		
 		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
@@ -58,7 +57,7 @@ public class EncryptionUtils {
 
 		byte[] encryptedData = cipher.doFinal(data);
 
-		return new Object[] { toHexString(secretKeyBytes), toHexString(iv), encryptedData };
+		return new Object[] { Utils.toHexString(secretKeyBytes), Utils.toHexString(iv), encryptedData };
 	}
 
 	// decrypts data using AES given key secretKey an initialization vector iv
@@ -71,29 +70,5 @@ public class EncryptionUtils {
 		cipher.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(iv));
 		byte[] decryptedBytes = cipher.doFinal(data);
 		return decryptedBytes;
-	}
-
-	// encodes bytes as hexadecimal string
-	public static String toHexString(byte[] bytes) {
-		String string = "";
-		for (int i = 0; i < bytes.length; i++) {
-			if ((0xff & bytes[i]) < 0x10) {
-				string += "0" + Integer.toHexString((0xFF & bytes[i]));
-			} else {
-				string += Integer.toHexString(0xFF & bytes[i]);
-			}
-		}
-		return string;
-	}
-
-	// decodes hexadecimal string back to bytes
-	public static byte[] fromHexString(String s) {
-		int len = s.length();
-		byte[] data = new byte[len / 2];
-		for (int i = 0; i < len; i += 2) {
-			data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character
-					.digit(s.charAt(i + 1), 16));
-		}
-		return data;
 	}
 }

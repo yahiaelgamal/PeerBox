@@ -38,7 +38,7 @@ public class FileSplitAndMerge {
         while (bis.read(buffer) > 0) {
         	pieces[i++] = buffer.clone();
         }
-        
+
         bis.close();
         return pieces;
     }

@@ -9,14 +9,22 @@ import java.util.Set;
 import java.security.*;
 import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.X509EncodedKeySpec;
-
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidParameterSpecException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Scanner;
+import java.util.Set;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-
 import org.json.simple.JSONObject;
+import networking.ServerClient;
 import org.json.simple.parser.ParseException;
-
 import de.uniba.wiai.lspi.chord.console.command.entry.Key;
 import de.uniba.wiai.lspi.chord.data.URL;
 import de.uniba.wiai.lspi.chord.service.Chord;
@@ -27,16 +35,23 @@ import de.uniba.wiai.lspi.chord.service.impl.ChordImpl;
 public class ChordWrapper {
 
 	// use over real network
-	static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
+	public static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
 	PublicKey publicKey;
 	PrivateKey privateKey;
+	// public static String PROTOCOL =
+	// URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
+
 	// use for testing on the JVM/thread
-	// String static PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.LOCAL_PROTOCOL);
+//	public static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.LOCAL_PROTOCOL);
+	// Used for networking p2p 
+	public static int NETWORKING_PORT = 5678;
 
 	public Chord dht1;
 	public Chord dht2;
 	public Chord dht3;
 	public FileManager fileManager;
+	public ServerClient networking;
+	
 
 	// In case of a creator
 	public ChordWrapper(URL myURL1, URL myURL2, URL myURL3, 
@@ -52,41 +67,35 @@ public class ChordWrapper {
 			this.dht3.create(myURL3);
 			
 			this.fileManager = new FileManager(myFolder);
-			
-			try
-			{			
-				//get macAddress
-				InetAddress address = InetAddress.getLocalHost();
-				NetworkInterface nwi = NetworkInterface.getByInetAddress(address);
-				byte mac[] = nwi.getHardwareAddress();
-				if(mac != null) {
-					StringBuilder macAddress = new StringBuilder();
-					for (int i = 0; i < mac.length; i++) {
-						macAddress.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
-					}
-					
-					// retrieve from DHT3
-					Set<Serializable> PK_receiver = getPiece3(new Key(macAddress.toString()));	
-					if(PK_receiver == null){
 						
-						// not found in DHT3, generate
-						KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-					    keyGen.initialize(1024);
-					    KeyPair key = keyGen.generateKeyPair();
-					    publicKey = key.getPublic();
-					    privateKey = key.getPrivate();
-					    
-					    // Insert public key in DHT3 and private key locally
-					    dht3.insert(new Key(macAddress.toString()), publicKey);
-					    fileManager.writeToRelativeFile("private_key.txt", privateKey.toString().getBytes());
-					}
+			//get macAddress
+			InetAddress address = InetAddress.getLocalHost();
+			NetworkInterface nwi = NetworkInterface.getByInetAddress(address);
+			byte mac[] = nwi.getHardwareAddress();
+			if(mac != null) {
+				StringBuilder macAddress = new StringBuilder();
+				for (int i = 0; i < mac.length; i++) {
+					macAddress.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
+				}
+				
+				// retrieve from DHT3
+				Set<Serializable> PK_receiver = getPiece3(new Key(macAddress.toString()));	
+				if(PK_receiver == null){
+					
+					// not found in DHT3, generate
+					KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+				    keyGen.initialize(1024);
+				    KeyPair key = keyGen.generateKeyPair();
+				    publicKey = key.getPublic();
+				    privateKey = key.getPrivate();
+				    
+				    // Insert public key in DHT3 and private key locally
+				    dht3.insert(new Key(macAddress.toString()), publicKey);
+				    fileManager.writeToRelativeFile("private_key.txt", privateKey.toString().getBytes());
 				}
 			}
-			catch(Exception e)
-			{
-				System.out.println("ERROR");
-			}
-		    
+			
+			this.networking = new ServerClient(NETWORKING_PORT, this);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -107,41 +116,34 @@ public class ChordWrapper {
 			this.dht3.join(myURL3, bootstrapURL3);
 			
 			this.fileManager = new FileManager(myFolder);
-
-			try
-			{			
-				//get macAddress
-				InetAddress address = InetAddress.getLocalHost();
-				NetworkInterface nwi = NetworkInterface.getByInetAddress(address);
-				byte mac[] = nwi.getHardwareAddress();
-				if(mac != null) {
-					StringBuilder macAddress = new StringBuilder();
-					for (int i = 0; i < mac.length; i++) {
-						macAddress.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
-					}
+			
+			//get macAddress
+			InetAddress address = InetAddress.getLocalHost();
+			NetworkInterface nwi = NetworkInterface.getByInetAddress(address);
+			byte mac[] = nwi.getHardwareAddress();
+			if(mac != null) {
+				StringBuilder macAddress = new StringBuilder();
+				for (int i = 0; i < mac.length; i++) {
+					macAddress.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
+				}
+				
+				// retrieve from DHT3
+				Set<Serializable> PK_receiver = getPiece3(new Key(macAddress.toString()));	
+				if(PK_receiver == null){
 					
-					// retrieve from DHT3
-					Set<Serializable> PK_receiver = getPiece3(new Key(macAddress.toString()));	
-					if(PK_receiver == null){
-						
-						// not found in DHT3, generate
-						KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-					    keyGen.initialize(1024);
-					    KeyPair key = keyGen.generateKeyPair();
-					    publicKey = key.getPublic();
-					    privateKey = key.getPrivate();
-					    
-					    // Insert public key in DHT3 and private key locally
-					    dht3.insert(new Key(macAddress.toString()), publicKey);
-					    fileManager.writeToRelativeFile("private_key.txt", privateKey.toString().getBytes());
-					}
+					// not found in DHT3, generate
+					KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+				    keyGen.initialize(1024);
+				    KeyPair key = keyGen.generateKeyPair();
+				    publicKey = key.getPublic();
+				    privateKey = key.getPrivate();
+				    
+				    // Insert public key in DHT3 and private key locally
+				    dht3.insert(new Key(macAddress.toString()), publicKey);
+				    fileManager.writeToRelativeFile("private_key.txt", privateKey.toString().getBytes());
 				}
 			}
-			catch(Exception e)
-			{
-				System.out.println("ERROR");
-			}
-		    
+			this.networking = new ServerClient(NETWORKING_PORT, this);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -152,68 +154,89 @@ public class ChordWrapper {
 	// it into DHT2
 	// returns torrent info in the form
 	// {String torrentHash, String torrentKey, String iv}
-	public String[] uploadFile(String filename) {
-		try {
-			String[] torrentInfo = new String[3];
+	public String[] uploadFile(String filename) throws IOException,
+			InvalidKeyException, NoSuchAlgorithmException,
+			NoSuchPaddingException, InvalidParameterSpecException,
+			IllegalBlockSizeException, BadPaddingException, ServiceException {
 
-			// divide to pieces, hash, encrypt and insert into DHT1
-			byte[][] pieces = fileManager.splitFiles(filename);
-			String[][] pieceInfo = insertPieces(pieces);
+		// generate key
+		byte[] secretKey = Crypto.generateAESSecret();
 
-			// generate torrent info
-			TorrentConfig torrent = new TorrentConfig(pieceInfo);
-			byte[] torrentJSON = torrent.toJSONString().getBytes();
+		// hash and encrypt torrent file and insert encrypted into dht2(hash)
+		Object[] torrentInfoAndEncTorrent = insertPiecesAndGenTorrent(filename, secretKey);
+		String[] torrentInfo = (String[]) torrentInfoAndEncTorrent[0]; 
+		byte[] encryptedTorrent = (byte[]) torrentInfoAndEncTorrent[1];
+		
+		String hash = torrentInfo[0];
 
-			// hash and encrypt torrent info. insert into DHT2
-			String hash = EncryptionUtils.getMD5Hash(torrentJSON);
-			torrentInfo[0] = hash;
+		dht2.insert(new Key(hash),
+				Utils.concat(new byte[] { (byte) 255 }, encryptedTorrent));
 
-			Object[] encryptionRes = EncryptionUtils.encryptAES(torrentJSON);
-			torrentInfo[1] = (String) encryptionRes[0];
-			torrentInfo[2] = (String) encryptionRes[1];
-			byte[] encryptedTorrent = (byte[]) encryptionRes[2];
+		// store torrentInfo
+		fileManager.addFile(filename, torrentInfo);
 
-			dht2.insert(new Key(hash), encryptedTorrent);
-
-			return torrentInfo;
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ServiceException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		} catch (InvalidKeyException e) {
-			e.printStackTrace();
-		} catch (NoSuchPaddingException e) {
-			e.printStackTrace();
-		} catch (InvalidParameterSpecException e) {
-			e.printStackTrace();
-		} catch (IllegalBlockSizeException e) {
-			e.printStackTrace();
-		} catch (BadPaddingException e) {
-			e.printStackTrace();
-		}
-		return null;
+		return torrentInfo;
 	}
 
-	public void downloadFile(String filename, String[] torrentInfo)
-			throws InvalidKeyException, NoSuchAlgorithmException,
-			NoSuchPaddingException, IllegalBlockSizeException,
-			BadPaddingException, InvalidAlgorithmParameterException,
-			ServiceException, IOException, ParseException {
-		
-		// get encrypted torrent info from dht2
-		String hash = torrentInfo[0];
-		byte[] key = EncryptionUtils.fromHexString(torrentInfo[1]);
-		byte[] iv = EncryptionUtils.fromHexString(torrentInfo[2]);
-		byte[] torrentBytes = (byte[]) (getPiece2(new Key(hash)).toArray()[0]);
-		
-		// decrypt torrent info
-		byte[] torrentDecrypted = EncryptionUtils.decryptAES(torrentBytes, key, iv);
-		
+	public String[] update(String filename, String[] torrentInfo)
+			throws IOException, InvalidKeyException, NoSuchAlgorithmException,
+			NoSuchPaddingException, InvalidParameterSpecException,
+			IllegalBlockSizeException, BadPaddingException, ServiceException,
+			InvalidAlgorithmParameterException, ParseException {
+
+		// get old torrentinfo
+		Key key1 = new Key(torrentInfo[0]);
+		byte[] secretKey1 = Utils.fromHexString(torrentInfo[1]);
+		byte[] iv1 = Utils.fromHexString(torrentInfo[2]);
+
+		// retrieve and decrypt old torrent info
+		byte[] dhtEntry = (byte[]) (dht2.retrieve(key1).toArray()[0]);
+		byte[] torrentBytes = PeerUtils.splitDHTEntry2(dhtEntry)[1];
+		byte[] torrentDecrypted = Crypto.decryptAES(torrentBytes, secretKey1, iv1);
 		TorrentConfig torrentJSON = new TorrentConfig(torrentDecrypted);
-		String[][] hash_key_ivs = torrentJSON.getAllPiecesInfo();
+		ArrayList<ArrayList<String>> hash_key_ivs = torrentJSON
+				.getAllPiecesInfo();
+		
+		// delete old pieces and old torrent file
+		deletePieces(hash_key_ivs);
+		dht2.remove(key1, dhtEntry);
+
+		// f(keytemp, keytorr) = keynew
+		byte[] tempKey = Crypto.generateAESSecret();
+		byte[] secretKey2 = PeerUtils.function(tempKey, secretKey1);
+
+		// insert pieces and hash + encrypt new torrent file
+		Object[] torrentInfoAndEncTorrent = insertPiecesAndGenTorrent(filename, secretKey2);
+		String[] newTorrentInfo = (String[]) torrentInfoAndEncTorrent[0]; 
+		byte[] encryptedTorrent = (byte[]) torrentInfoAndEncTorrent[1];
+		
+		String hash2 = newTorrentInfo[0];
+		byte[] iv2 = Utils.fromHexString(newTorrentInfo[2]);
+		
+		byte[] hash2Bytes = Utils.fromHexString(hash2);
+		Key key2 = new Key(hash2);
+
+		fileManager.replaceTorrentInfo(filename, newTorrentInfo);
+
+		// insert in dht2 <key1, 0x00 || tempKey || key2 || iv2>
+		// & <key2, 0xff || encTorrent>
+		this.dht2.insert(key1,PeerUtils.createDHT2Entry1(tempKey, hash2Bytes, iv2)); 
+		this.dht2.insert(key2, PeerUtils.createDHT2Entry2(encryptedTorrent));
+		
+		return newTorrentInfo;
+	}
+
+	// naive download. assumes file has not been edited.
+	// downloads file given its torrent info (hash, key and iv)
+	private void downloadFile(TorrentConfig torrentConfig) throws InvalidKeyException,
+			NoSuchAlgorithmException, NoSuchPaddingException,
+			IllegalBlockSizeException, BadPaddingException,
+			InvalidAlgorithmParameterException, ServiceException, IOException,
+			ParseException {
+		String filename = (String) torrentConfig.get("filename");
+
+		ArrayList<ArrayList<String>> hash_key_ivs = torrentConfig
+				.getAllPiecesInfo();
 
 		// download and combine pieces
 		downloadFile(filename, hash_key_ivs);
@@ -221,38 +244,120 @@ public class ChordWrapper {
 
 	// gets required pieces from DHT1, decrypts each, and combines them into
 	// file with name filename
-	private void downloadFile(String filename, String[][] hash_key_ivs)
-			throws ServiceException, IOException, NoSuchAlgorithmException,
-			NoSuchPaddingException, IllegalBlockSizeException,
-			BadPaddingException, InvalidKeyException,
-			InvalidAlgorithmParameterException {
+	private void downloadFile(String filename,
+			ArrayList<ArrayList<String>> hash_key_ivs) throws ServiceException,
+			IOException, NoSuchAlgorithmException, NoSuchPaddingException,
+			IllegalBlockSizeException, BadPaddingException,
+			InvalidKeyException, InvalidAlgorithmParameterException {
 		FileOutputStream fos = new FileOutputStream(
-				fileManager.buildFullPath(filename), true);
+				fileManager.buildFullPath(filename), false);
 
 		byte[] pieceBytes, decryptedBytes;
-		for (int i = 0; i < hash_key_ivs.length; i++) {
+		for (int i = 0; i < hash_key_ivs.size(); i++) {
 			System.out.println("Getting piece " + i);
 
-			String[] hash_key_iv = hash_key_ivs[i];
+			ArrayList<String> hash_key_iv = hash_key_ivs.get(i);
 
 			// get piece from DHT using key
-			Set<Serializable> set = getPiece1(new Key(hash_key_iv[0]));
+			Set<Serializable> set = getPiece1(new Key(hash_key_iv.get(0)));
 			pieceBytes = (byte[]) (set.toArray()[0]);
 
 			// secret key and IV
 			// consider changing! we convert byte[] to string and back to byte[]
-			byte[] secretKey = EncryptionUtils.fromHexString(hash_key_iv[1]);
-			byte[] iv = EncryptionUtils.fromHexString(hash_key_iv[2]);
+			byte[] secretKey = Utils.fromHexString(hash_key_iv.get(1));
+			byte[] iv = Utils.fromHexString(hash_key_iv.get(2));
 
 			// decrypt piece
-			decryptedBytes = EncryptionUtils.decryptAES(pieceBytes, secretKey,
-					iv);
+			decryptedBytes = Crypto.decryptAES(pieceBytes, secretKey, iv);
 
 			// write pieces to file
 			fos.write(decryptedBytes);
 			fos.flush();
 		}
 		fos.close();
+	}
+
+	// assumes fileManager already has torrentInfo for filename stored
+	public void sync(String filename) throws ServiceException,
+			InvalidKeyException, NoSuchAlgorithmException,
+			NoSuchPaddingException, IllegalBlockSizeException,
+			BadPaddingException, InvalidAlgorithmParameterException,
+			IOException, ParseException {
+		// get hash, secretKey, iv
+		String[] torrentInfo = fileManager.getTorrentInfo(filename);
+
+		// download file
+		sync(filename, torrentInfo);
+	}
+
+	private void sync(String filename, String[] torrentInfo)
+			throws ServiceException, InvalidKeyException,
+			NoSuchAlgorithmException, NoSuchPaddingException,
+			IllegalBlockSizeException, BadPaddingException,
+			InvalidAlgorithmParameterException, IOException, ParseException {
+		String hash = torrentInfo[0];
+		byte[] key = Utils.fromHexString(torrentInfo[1]);
+
+		byte[] dht2Entry = (byte[]) dht2.retrieve(new Key(hash)).toArray()[0];
+
+		if (Utils.isTorrentFile(dht2Entry)) {
+			// get encrypted torrent info from dht2
+			byte[] iv = Utils.fromHexString(torrentInfo[2]);
+			byte[] dhtEntry = (byte[]) dht2.retrieve(new Key(hash)).toArray()[0];
+			byte[] torrentBytes = PeerUtils.splitDHTEntry2(dhtEntry)[1];
+
+			// decrypt torrent
+			byte[] torrentDecrypted = Crypto.decryptAES(torrentBytes, key, iv);
+			TorrentConfig torrentConfig = new TorrentConfig(torrentDecrypted);
+			
+			downloadFile(torrentConfig);
+		} else {
+			byte[][] splitEntry = PeerUtils.splitDHTEntry1(dht2Entry);
+			byte[] tempKey = splitEntry[1];
+			byte[] key2 = splitEntry[2];
+			byte[] iv2 = splitEntry[3];
+
+			String[] newTorrentInfo = new String[3];
+			newTorrentInfo[0] = Utils.toHexString(key2);
+			newTorrentInfo[1] = Utils.toHexString(PeerUtils.function(tempKey, key));
+			newTorrentInfo[2] = Utils.toHexString(iv2);
+
+			fileManager.replaceTorrentInfo(filename, newTorrentInfo);
+
+			sync(filename, newTorrentInfo);
+		}
+	}
+
+	// {String[] torrentInfo, byte[] encryptedTorrent}
+	private Object[] insertPiecesAndGenTorrent(String filename,
+			byte[] secretKey) throws IOException,
+			InvalidKeyException, NoSuchAlgorithmException,
+			NoSuchPaddingException, InvalidParameterSpecException,
+			IllegalBlockSizeException, BadPaddingException, ServiceException {
+		// divide to pieces, hash, encrypt and insert into DHT1
+		byte[][] pieces = fileManager.splitFiles(filename);
+		String[][] pieceInfo = insertPieces(pieces);
+
+		// generate torrent info
+		TorrentConfig torrent = new TorrentConfig(filename, pieceInfo);
+		byte[] torrentBytes = torrent.toJSONString().getBytes();
+
+		// hash and encrypt torrent info. insert into DHT2
+		// hash = torrent info + current time
+		byte[] timeBytes = new SimpleDateFormat("HH:mm:ss").format(
+				Calendar.getInstance().getTime()).getBytes();
+
+		String[] torrentInfo = new String[3];
+		
+		String hash = Crypto.getMD5Hash(Utils.concat(torrentBytes, timeBytes));
+		torrentInfo[0] = hash;
+
+		Object[] encryptionRes = Crypto.encryptAES(torrentBytes, secretKey);
+		torrentInfo[1] = (String) encryptionRes[0];
+		torrentInfo[2] = (String) encryptionRes[1];
+		byte[] encryptedTorrent = (byte[]) encryptionRes[2];
+
+		return new Object[] { torrentInfo, encryptedTorrent };
 	}
 
 	// assumes pieces of proper size
@@ -286,15 +391,13 @@ public class ChordWrapper {
 		String[] hash_key_iv = new String[3];
 
 		// hash data
-		String keyString = EncryptionUtils.getMD5Hash(data);
+		String keyString = Crypto.getMD5Hash(data);
 		Key key = new Key(keyString);
 		hash_key_iv[0] = keyString;
 
-		// generate secret key
-
 		// encrypt data
 		byte[] encryptedData;
-		Object[] encResult = EncryptionUtils.encryptAES(data);
+		Object[] encResult = Crypto.encryptAES(data);
 		hash_key_iv[1] = (String) encResult[0];
 		hash_key_iv[2] = (String) encResult[1];
 		encryptedData = (byte[]) encResult[2];
@@ -305,12 +408,52 @@ public class ChordWrapper {
 		return hash_key_iv;
 	}
 
+	private void deletePieces(ArrayList<ArrayList<String>> hash_key_ivs)
+			throws ServiceException {
+		for (int i = 0; i < hash_key_ivs.size(); i++) {
+			ArrayList<String> hash_key_iv = hash_key_ivs.get(i);
+			// delete piece from DHT using key
+			deletePiece(hash_key_iv);
+		}
+	}
+
+	private void deletePiece(ArrayList<String> hash_key_iv)
+			throws ServiceException {
+		Set<Serializable> set = getPiece1(new Key(hash_key_iv.get(0)));
+		byte[] pieceBytes = (byte[]) (set.toArray()[0]);
+		this.dht1.remove(new Key(hash_key_iv.get(0)), pieceBytes);
+	}
+
 	private Set<Serializable> getPiece1(Key key) throws ServiceException {
 		return this.dht1.retrieve(key);
 	}
-	
-	private Set<Serializable> getPiece2(Key key) throws ServiceException {
-		return this.dht2.retrieve(key);
+
+	public static ChordWrapper initNetwork(int DHTPort1, int DHTPort2, int DHTPort3) {
+		PropertiesLoader.loadPropertyFile();
+		String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
+
+		try {
+			System.out.println(Utils.getMyIP());
+			URL localURLDHT1 = new URL(PROTOCOL + "://"
+					+ Utils.getMyIP() + ":"
+					+ DHTPort1 + "/");
+			
+			URL localURLDHT2 = new URL(PROTOCOL + "://"
+					+ Utils.getMyIP() + ":"
+					+ DHTPort2 + "/");
+			
+			URL localURLDHT3 = new URL(PROTOCOL + "://"
+					+ Utils.getMyIP() + ":"
+					+ DHTPort3 + "/");
+			
+			return new ChordWrapper(localURLDHT1, localURLDHT2,
+					localURLDHT3, "initPeer");
+
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		return null;
 	}
 	
 	private Set<Serializable> getPiece3(Key key) throws ServiceException {
@@ -343,67 +486,91 @@ public class ChordWrapper {
 		}
 		return false;
 	}
+	
+	public static ChordWrapper joinNetwork(int DHTPort1, int DHTPort2, int DHTPort3,
+			String bootstrapDHT1, String bootstrapDHT2, String bootstrapDHT3) {
+		PropertiesLoader.loadPropertyFile();
+		String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
+		try {
+			URL localURLDHT1 = new URL(PROTOCOL + "://"
+					+ Utils.getMyIP() + ":"
+					+ DHTPort1 + "/");
+
+			URL localURLDHT2 = new URL(PROTOCOL + "://"
+					+ Utils.getMyIP() + ":"
+					+ DHTPort2 + "/");
+			
+			URL localURLDHT3 = new URL(PROTOCOL + "://"
+					+ Utils.getMyIP() + ":"
+					+ DHTPort3 + "/");
+
+			URL bootstrappedDHT1 = new URL(PROTOCOL + "://" + bootstrapDHT1
+					+ "/");
+			URL bootstrappedDHT2 = new URL(PROTOCOL + "://" + bootstrapDHT2
+					+ "/");
+			URL bootstrappedDHT3 = new URL(PROTOCOL + "://" + bootstrapDHT3
+					+ "/");
+
+			return new ChordWrapper(localURLDHT1, localURLDHT2, localURLDHT3,
+					bootstrappedDHT1, bootstrappedDHT2, bootstrappedDHT3, "bootstrapped");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+
+	// will be called when the peer receives something
+	public void receivedBytes(byte[] bs) {
+	}
+	
+	// call to send bytes to a peer
+	public void sendBytes(byte[] bs, String ip, int port) {
+		this.networking.sendBytes(bs, ip, port);
+	}	
 
 	public static void main(String[] args) {
 
-		System.out.println(System.getProperty("java.class.path"));
-		int nrPeers = 10;
+		// initialize network
+		ChordWrapper init = ChordWrapper.initNetwork(4000, 6000, 8000);
+
+		// joinExistingNetwork starts
+		// PropertiesLoader.loadPropertyFile();
+
+		// ChordWrapper bootstrapper = ChordWrapper.joinNetwork(8001, 4001,
+		// "192.168.1.1:8000", "192.168.1.1:4000");
+
+		String[] torrentinfo = null;
+
+		Scanner sc = new Scanner(System.in);
+		sc.nextLine();
 		try {
-			
-			PropertiesLoader.loadPropertyFile();
-			
-			URL localURL1 = new URL(PROTOCOL + "://localhost:4000/");
-			URL localURL2 = new URL(PROTOCOL + "://localhost:6000/");
-			URL localURL3 = new URL(PROTOCOL + "://localhost:8000/");
-			
-			// create public key
-		    final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-		    keyGen.initialize(1024);
-		    KeyPair key = keyGen.generateKeyPair();
-		    PublicKey publicKey = key.getPublic();
-		    PrivateKey privateKey = key.getPrivate();
-		    
-			ChordWrapper first = new ChordWrapper(localURL1, localURL2, 
-					localURL3, "peer0/");
-			System.out.println("Created first peer");
+			torrentinfo = init.uploadFile("IMG_8840.JPG");
+			// the bootstrapper should know the torrentinfo somehow
+			// use sockets for testing sake
+			// DatagramSocket datagramSocket = new DatagramSocket(null);
+			// datagramSocket.bind(new
+			// InetSocketAddress(InetAddress.getByName(""),5000));
 
-			ChordWrapper[] wrappers = new ChordWrapper[nrPeers];
-			wrappers[0] = first;
+			// for(int i=0;i<torrentinfo.length;i++){
+			// System.out.println(torrentinfo[i]);
+			// DatagramPacket packet = new DatagramPacket(message,
+			// message.length, address, PORT); // create packet to send
+			// datagramSocket.send(packet);
+			// }
 
-			for (int i = 1; i < nrPeers; i++) {
-				int port1 = 4000 + i;
-				int port2 = 6000 + i;
-				int port3 = 8000 + i;
-				
-				URL newURL1 = new URL(PROTOCOL + "://localhost:" + port1 + "/");
-				URL newURL2 = new URL(PROTOCOL + "://localhost:" + port2 + "/");
-				URL newURL3 = new URL(PROTOCOL + "://localhost:" + port3 + "/");
-
-				key = keyGen.generateKeyPair();
-			    publicKey = key.getPublic();
-			    privateKey = key.getPrivate();
-				// localURL (URL for someone in the network) will be known by a
-				// higher level discovery mechanism
-				wrappers[i] = new ChordWrapper(newURL1, newURL2, newURL3, localURL1,
-						localURL2, localURL3, "peer" + i + "/");
-			}
-
-			System.out.println("peer[0] is splitting files");
-			String[] torrentInfo = wrappers[0].uploadFile("IMG_8840.JPG");
-			System.out.println("peer[0] split ended");
-
-			// assumption of knowing the keys
-			// JUST FOR TESTING peer2 will retreive the picture
-			System.out.println("Peer 2 is getting peices .. ");
-			wrappers[2].downloadFile("retreivedFile.jpg", torrentInfo);
-			System.out.println("check peer2 folder for a surprise");
-			// VOALA WE HAVE A DROPBOX
-
-			// go to console and try retrieving the hashes, it will work !
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.exit(1);
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
+
+		try {
+			// bootstrapper.downloadFile(torrentinfo);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 	}
 }

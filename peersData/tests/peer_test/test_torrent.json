@@ -1,1 +1,1 @@
-[["key1","EncKey1","init1"],["key2","EncKey2","init2"],["key3","EncKey3","init3"]]
+{"pieces":[["key1","EncKey1","init1"],["key2","EncKey2","init2"],["key3","EncKey3","init3"]],"filename":"filename"}

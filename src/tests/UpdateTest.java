@@ -26,7 +26,15 @@ public class UpdateTest {
 		return new URL[] {localURL0, localURL1, localURL2};
 		
 	}
-	public static void main(String[] args) {
+	
+	// scenario:
+	// 1. peer0 uploads coolFile.txt that contains the text "file version 1"
+	// 2. peer1 and peer2 download file
+	// 3. peer1 edits the file to contain the text "file version 2"
+	// 4. peer2 syncs the file
+	// expected output: peer0 has version 1 and peer 1 and 2 have version 2 
+	// assumption: peers 1 and 2 know the old torrent info
+	public static void test1() {
 		try {
 
 			PropertiesLoader.loadPropertyFile();
@@ -53,12 +61,12 @@ public class UpdateTest {
 			peer2.downloadFile(torrentInfo);
 			
 			
-			peer1.fileManager.writeToRelativeFile("coolFile.txt", "file versino 2".getBytes());
+			peer1.fileManager.writeToRelativeFile("coolFile.txt", "File version 2".getBytes());
 			System.out.println("Peer 1 edited file");
 			
 			
 			String[] torrentInfo2 = peer1.update("coolFile.txt", torrentInfo);
-			System.out.println(Arrays.toString(torrentInfo2));
+			System.out.println("New Torrent info: " + Arrays.toString(torrentInfo2));
 			
 			// assume
 //			peer2.downloadFile(torrentInfo2);
@@ -67,6 +75,9 @@ public class UpdateTest {
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+	}
+	
+	public static void main(String[] args) {
+		test1();
 	}
 }

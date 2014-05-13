@@ -475,7 +475,7 @@ public class ChordWrapper {
 			data.put("IV", IV);
 			byte[] dataBytes = data.toJSONString().getBytes();
 			
-			byte[] encrypted = EncryptionUtils.encryptWithPK(
+			byte[] encrypted = Crypto.encryptWithPK(
 					(PublicKey)PK_receiver.toArray()[0], dataBytes);
 			
 			

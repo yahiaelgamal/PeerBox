@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Enumeration;
+import java.util.Scanner;
 import java.util.Set;
 
 import javax.crypto.BadPaddingException;
@@ -432,15 +433,16 @@ public class ChordWrapper {
 
 		String[] torrentinfo = null;
 
+		Scanner sc = new Scanner(System.in);
+		sc.nextLine();
 		try {
-			Thread.sleep(5000);
 			torrentinfo = init.uploadFile("IMG_8840.JPG");
 			// the bootstrapper should know the torrentinfo somehow
 			// use sockets for testing sake
 			// DatagramSocket datagramSocket = new DatagramSocket(null);
 			// datagramSocket.bind(new
 			// InetSocketAddress(InetAddress.getByName(""),5000));
-			//
+
 			// for(int i=0;i<torrentinfo.length;i++){
 			// System.out.println(torrentinfo[i]);
 			// DatagramPacket packet = new DatagramPacket(message,

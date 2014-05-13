@@ -1,32 +1,64 @@
 package tests;
 
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.MalformedURLException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidParameterSpecException;
+import java.net.Socket;
 import java.util.Arrays;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
+import java.util.Scanner;
 
 import PeerBox.ChordWrapper;
 import de.uniba.wiai.lspi.chord.data.URL;
 import de.uniba.wiai.lspi.chord.service.PropertiesLoader;
-import de.uniba.wiai.lspi.chord.service.ServiceException;
 
 public class UpdateTest {
 
-	public static URL[] makeURLs(int i) throws MalformedURLException {
-		URL localURL0 = new URL(ChordWrapper.PROTOCOL + "://localhost:" + (4000+i) + "/");
-		URL localURL1 = new URL(ChordWrapper.PROTOCOL + "://localhost:" + (5000+i) + "/");
-		URL localURL2 = new URL(ChordWrapper.PROTOCOL + "://localhost:" + (6000+i) + "/");
-		return new URL[] {localURL0, localURL1, localURL2};
-		
+	public static URL[] makeURLs(int i){
+		try {
+			URL localURL0 = new URL(ChordWrapper.PROTOCOL + "://localhost:" + (4000+i) + "/");
+			URL localURL1 = new URL(ChordWrapper.PROTOCOL + "://localhost:" + (5000+i) + "/");
+			URL localURL2 = new URL(ChordWrapper.PROTOCOL + "://localhost:" + (6000+i) + "/");
+			return new URL[] {localURL0, localURL1, localURL2};
+		}catch (MalformedURLException e) {
+			e.printStackTrace();
+			System.exit(3);
+			return null;
+		}
 	}
-	public static void main(String[] args) {
+	
+	public static void testSocket() {
+		PropertiesLoader.loadPropertyFile();
+		// initialize network
+//		ChordWrapper init = ChordWrapper.initNetwork(8000, 4000);
+
+		URL[] initURLs = makeURLs(0);
+		System.out.println(Arrays.toString(initURLs));
+		URL[] bootstrappedURLs = makeURLs(1);
+		System.out.println(Arrays.toString(bootstrappedURLs));
+		
+		ChordWrapper init = new ChordWrapper(initURLs[0], initURLs[1], "init");
+		ChordWrapper bootstrapper = new ChordWrapper(bootstrappedURLs[0],
+				bootstrappedURLs[1], initURLs[0], initURLs[1], "bootstraped");
+		
+
+		// joinExistingNetwork starts
+
+		String[] torrentinfo = null;
+
+		Scanner sc = new Scanner(System.in);
+		System.out.println("Press enter to upload");
+		sc.nextLine();
+		try {
+			
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+		    
+	}
+	public static void testUpdate() {
+
+		
 		try {
 
 			PropertiesLoader.loadPropertyFile();
@@ -68,5 +100,9 @@ public class UpdateTest {
 			e.printStackTrace();
 		}
 		
+	}
+	public static void main(String[] args) {
+//		testUpdate();
+		testSocket();
 	}
 }

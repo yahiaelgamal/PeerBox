@@ -4,20 +4,29 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidParameterSpecException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Enumeration;
 import java.util.Set;
-import java.security.*;
-import java.security.spec.InvalidParameterSpecException;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.rmi.CORBA.Util;
+import javax.swing.plaf.SliderUI;
 
 import org.json.simple.parser.ParseException;
 
+import de.uniba.wiai.lspi.chord.console.command.Wait;
 import de.uniba.wiai.lspi.chord.console.command.entry.Key;
 import de.uniba.wiai.lspi.chord.data.URL;
 import de.uniba.wiai.lspi.chord.service.Chord;
@@ -148,7 +157,7 @@ public class ChordWrapper {
 		TorrentConfig torrentJSON = new TorrentConfig(torrentDecrypted);
 		ArrayList<ArrayList<String>> hash_key_ivs = torrentJSON
 				.getAllPiecesInfo();
-
+		
 		// delete old pieces and old torrent file
 		deletePieces(hash_key_ivs);
 		dht2.remove(key1, dhtEntry);
@@ -409,51 +418,102 @@ public class ChordWrapper {
 		return this.dht1.retrieve(key);
 	}
 
-	public static void main(String[] args) {
-		System.out.println(System.getProperty("java.class.path"));
-		int nrPeers = 10;
+	private Set<Serializable> getPiece2(Key key) throws ServiceException {
+		return this.dht2.retrieve(key);
+	}
+
+	public static ChordWrapper initNetwork(int DHTPort1, int DHTPort2) {
+		PropertiesLoader.loadPropertyFile();
+		String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
+
 		try {
-			PropertiesLoader.loadPropertyFile();
+			System.out.println(Utils.getMyIP());
+			URL localURLDHT1 = new URL(PROTOCOL + "://"
+					+ Utils.getMyIP() + ":"
+					+ DHTPort1 + "/");
+			
+			URL localURLDHT2 = new URL(PROTOCOL + "://"
+					+ Utils.getMyIP() + ":"
+					+ DHTPort2 + "/");
 
-			URL localURL1 = new URL(PROTOCOL + "://localhost:8000/");
-			URL localURL2 = new URL(PROTOCOL + "://localhost:4000/");
-			ChordWrapper first = new ChordWrapper(localURL1, localURL2,
-					"peer0/");
-			System.out.println("Created first peer");
+			return new ChordWrapper(localURLDHT1, localURLDHT2, "initPeer");
 
-			ChordWrapper[] wrappers = new ChordWrapper[nrPeers];
-			wrappers[0] = first;
-
-			for (int i = 1; i < nrPeers; i++) {
-				int port1 = 8000 + i;
-				int port2 = 4000 + i;
-
-				URL newURL1 = new URL(PROTOCOL + "://localhost:" + port1 + "/");
-				URL newURL2 = new URL(PROTOCOL + "://localhost:" + port2 + "/");
-
-				// localURL (URL for someone in the network) will be known by a
-				// higher level discovery mechanism
-				wrappers[i] = new ChordWrapper(newURL1, newURL2, localURL1,
-						localURL2, "peer" + i + "/");
-			}
-
-			System.out.println("peer[0] is splitting files");
-			String[] torrentInfo = wrappers[0].uploadFile("IMG_8840.JPG");
-			System.out.println("peer[0] split ended");
-
-			// assumption of knowing the keys
-			// JUST FOR TESTING peer2 will retreive the picture
-			System.out.println("Peer 2 is getting peices .. ");
-			// wrappers[2].downloadFile("retreivedFile.jpg", torrentInfo);
-			wrappers[2].downloadFile(torrentInfo);
-			System.out.println("check peer2 folder for a surprise");
-			// VOALA WE HAVE A DROPBOX
-
-			// go to console and try retrieving the hashes, it will work !
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.exit(1);
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
+		return null;
+	}
+
+	public static ChordWrapper joinNetwork(int DHTPort1, int DHTPort2,
+			String bootstrapDHT1, String bootstrapDHT2) {
+		PropertiesLoader.loadPropertyFile();
+		String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
+		try {
+			URL localURLDHT1 = new URL(PROTOCOL + "://"
+					+ Utils.getMyIP() + ":"
+					+ DHTPort1 + "/");
+
+			URL localURLDHT2 = new URL(PROTOCOL + "://"
+					+ Utils.getMyIP() + ":"
+					+ DHTPort2 + "/");
+
+			URL bootstrappedDHT1 = new URL(PROTOCOL + "://" + bootstrapDHT1
+					+ "/");
+
+			URL bootstrappedDHT2 = new URL(PROTOCOL + "://" + bootstrapDHT2
+					+ "/");
+
+			return new ChordWrapper(localURLDHT1, localURLDHT2,
+					bootstrappedDHT1, bootstrappedDHT2, "bootstrapped");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+
+	public static void main(String[] args) {
+
+		// initialize network
+		ChordWrapper init = ChordWrapper.initNetwork(8000, 4000);
+
+		// joinExistingNetwork starts
+		// PropertiesLoader.loadPropertyFile();
+
+		// ChordWrapper bootstrapper = ChordWrapper.joinNetwork(8001, 4001,
+		// "192.168.1.1:8000", "192.168.1.1:4000");
+
+		String[] torrentinfo = null;
+
+		try {
+			Thread.sleep(5000);
+			torrentinfo = init.uploadFile("IMG_8840.JPG");
+			// the bootstrapper should know the torrentinfo somehow
+			// use sockets for testing sake
+			// DatagramSocket datagramSocket = new DatagramSocket(null);
+			// datagramSocket.bind(new
+			// InetSocketAddress(InetAddress.getByName(""),5000));
+			//
+			// for(int i=0;i<torrentinfo.length;i++){
+			// System.out.println(torrentinfo[i]);
+			// DatagramPacket packet = new DatagramPacket(message,
+			// message.length, address, PORT); // create packet to send
+			// datagramSocket.send(packet);
+			// }
+
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		try {
+			// bootstrapper.downloadFile(torrentinfo);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 	}
 }

@@ -4,6 +4,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.net.*;
 import java.util.Set;
 import java.security.*;
 import java.security.spec.InvalidParameterSpecException;
@@ -62,8 +63,7 @@ public class ChordWrapper {
 
 	// In case of bootstraper
 	public ChordWrapper(URL myURL1, URL myURL2, URL myURL3, URL bootstrapURL1,
-			URL bootstrapURL2, URL bootstrapURL3, String myFolder,
-			PublicKey publicKey, PrivateKey privateKey) {
+			URL bootstrapURL2, URL bootstrapURL3, String myFolder) {
 		try {
 			this.dht1 = new ChordImpl();
 			this.dht1.join(myURL1, bootstrapURL1);
@@ -76,7 +76,39 @@ public class ChordWrapper {
 			this.dht3.join(myURL3, bootstrapURL3);
 			
 			this.fileManager = new FileManager(myFolder);
-			
+			//get macAddress
+			try
+			{
+				InetAddress address = InetAddress.getLocalHost();
+				NetworkInterface nwi = NetworkInterface.getByInetAddress(address);
+				byte mac[] = nwi.getHardwareAddress();
+				if(mac != null) {
+					StringBuilder macAddress = new StringBuilder();
+					for (int i = 0; i < mac.length; i++) {
+						macAddress.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
+					}
+					Set<Serializable> PK_receiver = getPiece3(new Key(macAddress.toString()));	
+					if(PK_receiver == null){
+						KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+					    keyGen.initialize(1024);
+					    KeyPair key = keyGen.generateKeyPair();
+					    PublicKey publicKey = key.getPublic();
+					    PrivateKey privateKey = key.getPrivate();
+					    dht3.insert(new Key(macAddress.toString()), publicKey);
+					    
+					}
+				}
+			}
+			catch(Exception e)
+			{
+				System.out.println("ERROR");
+			}
+//			KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+//		    keyGen.initialize(1024);
+//		    KeyPair key = keyGen.generateKeyPair();
+//		    PublicKey publicKey = key.getPublic();
+//		    PrivateKey privateKey = key.getPrivate();
+//			
 			this.publicKey = publicKey;
 			this.privateKey = privateKey;
 		} catch (Exception e) {
@@ -282,6 +314,7 @@ public class ChordWrapper {
 	}
 
 	public static void main(String[] args) {
+
 		System.out.println(System.getProperty("java.class.path"));
 		int nrPeers = 10;
 		try {
@@ -322,7 +355,7 @@ public class ChordWrapper {
 				// localURL (URL for someone in the network) will be known by a
 				// higher level discovery mechanism
 				wrappers[i] = new ChordWrapper(newURL1, newURL2, newURL3, localURL1,
-						localURL2, localURL3, "peer" + i + "/", publicKey, privateKey);
+						localURL2, localURL3, "peer" + i + "/");
 			}
 
 			System.out.println("peer[0] is splitting files");

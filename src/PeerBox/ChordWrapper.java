@@ -582,36 +582,45 @@ public class ChordWrapper {
 	}
 	// will be called when the peer receives something
 	public void receivedBytes(byte[] bs)  {
-			String s = new String(bs);
-			JSONObject map = (JSONObject) JSONValue.parse(s);
-			String filename = (String) map.get("filename");
-			ArrayList<String> torrentInfo = (ArrayList<String>)map.get("torrentInfo");
-//			System.out.println(torrentInfo.get("torrentInfo"));
-			// TODO approve downloading
-			System.out.println("Downloading");
-			System.out.println(torrentInfo);
-			String[] torrentInfoArray = {torrentInfo.get(0), torrentInfo.get(1), torrentInfo.get(2)};
-			try {
+		String s = new String(bs);
+		JSONObject map = (JSONObject) JSONValue.parse(s);
+		String filename = (String) map.get("filename");
+		ArrayList<String> torrentInfo = (ArrayList<String>) map
+				.get("torrentInfo");
+		// System.out.println(torrentInfo.get("torrentInfo"));
+		System.out.println("Downloading");
+		System.out.println(torrentInfo);
+		String[] torrentInfoArray = { torrentInfo.get(0), torrentInfo.get(1),
+				torrentInfo.get(2) };
+		Scanner sc = new Scanner(System.in);
+		System.out.println("Someone wants to share file " + filename
+				+ " Press y to approve, n otherwise");
+		
+		// TODO know that someone
+		try {
+			if(sc.nextLine().equals("y"))
 				this.sync(filename, torrentInfoArray);
-			} catch (InvalidKeyException e) {
-				e.printStackTrace();
-			} catch (NoSuchAlgorithmException e) {
-				e.printStackTrace();
-			} catch (NoSuchPaddingException e) {
-				e.printStackTrace();
-			} catch (IllegalBlockSizeException e) {
-				e.printStackTrace();
-			} catch (BadPaddingException e) {
-				e.printStackTrace();
-			} catch (InvalidAlgorithmParameterException e) {
-				e.printStackTrace();
-			} catch (ServiceException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			} catch (ParseException e) {
-				e.printStackTrace();
-			}
+			else
+				System.out.println("File dissapproved");
+		} catch (InvalidKeyException e) {
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			e.printStackTrace();
+		} catch (ServiceException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	// call to send bytes to a peer

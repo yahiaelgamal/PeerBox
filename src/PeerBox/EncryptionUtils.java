@@ -1,14 +1,20 @@
 package PeerBox;
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.InvalidParameterSpecException;
+import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.CipherOutputStream;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
@@ -95,5 +101,29 @@ public class EncryptionUtils {
 					.digit(s.charAt(i + 1), 16));
 		}
 		return data;
+	}
+	
+	public static byte[] encryptWithPK(PublicKey pk, byte[] data){
+		try {
+		    // create RSA public key cipher
+		    Cipher pkCipher = Cipher.getInstance("RSA");
+		    pkCipher.init(Cipher.ENCRYPT_MODE, pk);  
+		    //encode
+		    byte[] encrypted = pkCipher.doFinal(data);
+			return encrypted;
+		} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
 	}
 }

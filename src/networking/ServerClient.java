@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import PeerBox.ChordWrapper;
 
@@ -13,9 +15,11 @@ public class ServerClient {
 	
 	ServerSocket listener;
 	ChordWrapper chordWrapper;
+	public int port;
 	public ServerClient(int port, ChordWrapper owner) throws IOException{
 		this.listener = new ServerSocket(port);
 		this.chordWrapper = owner;
+		this.port = port;
 		Runnable r = new Runnable() {
 			@Override
 			public void run() {
@@ -24,8 +28,22 @@ public class ServerClient {
 					while(true) {
 						Socket socket = listener.accept();
 	                	System.out.println("I got this ");
-	                	byte[] bs = new byte[1024];
-	                	socket.getInputStream().read(bs);
+	                	// TODO NADDAF
+//	                	byte[] bs = new byte[1024];
+	                	ArrayList<Byte> bytesArrayList = new ArrayList<Byte>();
+	                	
+	                	byte[] bs = new byte[1024*4];
+	                	int counter = 0;
+	                	byte b;
+	                	while(true) {
+	                		b = (byte)socket.getInputStream().read();
+	                		if(b == (byte) -1)
+	                			break;
+	                		bs[counter] = b;
+	                		counter++;
+	                	}
+	                	
+	                	bs = Arrays.copyOfRange(bs, 0, counter);
 	                	
 	                	// for testing 
 	                	if(chordWrapper != null)

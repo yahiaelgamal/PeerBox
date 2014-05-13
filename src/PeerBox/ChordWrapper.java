@@ -21,6 +21,9 @@ import javax.crypto.NoSuchPaddingException;
 
 import networking.ServerClient;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
 
 import de.uniba.wiai.lspi.chord.console.command.entry.Key;
@@ -34,18 +37,23 @@ public class ChordWrapper {
 
 	// use over real network
 	// public static String PROTOCOL =
-	// URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
+//	 URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
 
 	// use for testing on the JVM/thread
 	public static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.LOCAL_PROTOCOL);
+	
 	// Used for networking p2p 
-	public static int NETWORKING_PORT = 5678;
+	private static int NETWORKING_PORT = 5678;
+	private static int counterPort = 0;
 
 	public Chord dht1;
 	public Chord dht2;
 	public FileManager fileManager;
 	public ServerClient networking;
 	
+	public static int getNetworkingPort() {
+		return NETWORKING_PORT + (counterPort++);
+	}
 
 	// In case of a creator
 	public ChordWrapper(URL myURL1, URL myURL2, String myFolder) {
@@ -58,7 +66,7 @@ public class ChordWrapper {
 
 			this.fileManager = new FileManager(myFolder);
 			
-			this.networking = new ServerClient(NETWORKING_PORT, this);
+			this.networking = new ServerClient(getNetworkingPort(), this);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -76,7 +84,7 @@ public class ChordWrapper {
 
 			this.fileManager = new FileManager(myFolder);
 			
-			this.networking = new ServerClient(NETWORKING_PORT, this);
+			this.networking = new ServerClient(getNetworkingPort(), this);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -458,7 +466,25 @@ public class ChordWrapper {
 	}
 
 	// will be called when the peer receives something
-	public void receivedBytes(byte[] bs) {
+	public void receivedBytes(byte[] bs)  {
+		try {
+			String s = new String(bs);
+			JSONObject map = (JSONObject) JSONValue.parse(s);
+			String filename = (String) map.get("filename");
+			ArrayList<String> torrentInfo = (ArrayList<String>)map.get("torrentInfo");
+//			System.out.println(torrentInfo.get("torrentInfo"));
+			// TODO approve downloading
+			System.out.println("Downloading");
+			System.out.println(torrentInfo);
+			String[] torrentInfoArray = {torrentInfo.get(0), torrentInfo.get(1), torrentInfo.get(2)};
+			this.sync(filename, torrentInfoArray);
+		}catch (ParseException | InvalidKeyException | NoSuchAlgorithmException
+					| NoSuchPaddingException | IllegalBlockSizeException
+					| BadPaddingException | InvalidAlgorithmParameterException
+					| ServiceException | IOException e) {
+			e.printStackTrace();
+			System.exit(3);
+		}
 	}
 	
 	// call to send bytes to a peer

@@ -24,13 +24,13 @@ public class Crypto {
 	public static final int SECRET_KEY_LEN = 128 / 8;
 
 	// generates a 128-bit AES key
-	public static String generateAESSecret() throws NoSuchAlgorithmException {
+	public static byte[] generateAESSecret() throws NoSuchAlgorithmException {
 		KeyGenerator kgen = KeyGenerator.getInstance(ENCRYPTION_ALGO);
 		kgen.init(SECRET_KEY_LEN * 8);
 		SecretKey skey = kgen.generateKey();
 		byte[] raw = skey.getEncoded();
 
-		return Utils.toHexString(raw);
+		return raw;
 	}
 
 	// returns MD5 digest of given data as a string
@@ -50,8 +50,7 @@ public class Crypto {
 			IllegalBlockSizeException, BadPaddingException,
 			InvalidKeyException, InvalidParameterSpecException {
 
-		String secretKeyString = generateAESSecret();
-		byte[] secretKeyBytes = Utils.fromHexString(secretKeyString);
+		byte[] secretKeyBytes = generateAESSecret();
 		SecretKeySpec secretKey = new SecretKeySpec(secretKeyBytes,
 				ENCRYPTION_ALGO);
 
@@ -67,19 +66,19 @@ public class Crypto {
 		return new Object[] { Utils.toHexString(secretKeyBytes),
 				Utils.toHexString(iv), encryptedData };
 	}
-	
+
 	// encrypts data using AES with key
-	// returns Object[] 
+	// returns Object[]
 	// {String secretKey, String initializationVector, byte[] encryptedData}
 	public static Object[] encryptAES(byte[] data, byte[] key)
 			throws NoSuchAlgorithmException, NoSuchPaddingException,
 			IllegalBlockSizeException, BadPaddingException,
 			InvalidKeyException, InvalidParameterSpecException {
 
-//		String secretKeyString = generateAESSecret();
-//		byte[] secretKeyBytes = Utils.fromHexString(secretKeyString);
+		// String secretKeyString = generateAESSecret();
+		// byte[] secretKeyBytes = Utils.fromHexString(secretKeyString);
 		SecretKeySpec secretKey = new SecretKeySpec(key, "AES");
-		
+
 		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 		cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 
@@ -89,7 +88,8 @@ public class Crypto {
 
 		byte[] encryptedData = cipher.doFinal(data);
 
-		return new Object[] { Utils.toHexString(key), Utils.toHexString(iv), encryptedData };
+		return new Object[] { Utils.toHexString(key), Utils.toHexString(iv),
+				encryptedData };
 	}
 
 	// decrypts data using AES given key secretKey an initialization vector iv

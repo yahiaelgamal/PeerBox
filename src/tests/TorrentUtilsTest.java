@@ -1,11 +1,7 @@
 package tests;
 
-import java.awt.image.ConvolveOp;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-
-import org.json.simple.JSONObject;
 
 import de.uniba.wiai.lspi.chord.data.URL;
 import de.uniba.wiai.lspi.chord.service.PropertiesLoader;
@@ -13,7 +9,6 @@ import de.uniba.wiai.lspi.util.console.parser.ParseException;
 import PeerBox.ChordWrapper;
 import PeerBox.FileManager;
 import PeerBox.TorrentConfig;
-import PeerBox.Utils;
 
 public class TorrentUtilsTest {
 
@@ -63,7 +58,7 @@ public class TorrentUtilsTest {
                tc.getAllKeys().get(2).equals("key3");
     }
 
-    public void testLocalNetwork(String PROTOCOL)
+    public static void testLocalNetwork(String PROTOCOL)
     {
     	 System.out.println(System.getProperty("java.class.path"));
 		 int nrPeers = 10;
@@ -99,8 +94,8 @@ public class TorrentUtilsTest {
 		 // assumption of knowing the keys
 		 // JUST FOR TESTING peer2 will retreive the picture
 		 System.out.println("Peer 2 is getting peices .. ");
-		 // wrappers[2].downloadFile("retreivedFile.jpg", torrentInfo);
-		 wrappers[2].downloadFile(torrentInfo);
+		 wrappers[2].fileManager.addFile("retreivedFile.jpg", torrentInfo);
+		 wrappers[2].sync("retreivedFile.jpg");
 		 System.out.println("check peer2 folder for a surprise");
 		 // VOALA WE HAVE A DROPBOX
 		
@@ -111,9 +106,11 @@ public class TorrentUtilsTest {
 		 System.exit(1);
 		 }
     }
+    
     public static void main(String[] args) throws Exception{
         System.out.println(TestBasicConversion());
         System.out.println(testWriteTorrentConfig());
         System.out.println(testTorrentConfig());
+        testLocalNetwork(ChordWrapper.PROTOCOL);
     }
 }

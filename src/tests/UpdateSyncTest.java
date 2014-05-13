@@ -147,8 +147,8 @@ public class UpdateSyncTest {
 			peer4.sync(filename); // p4 -> v4
 			
 			System.out.println("Peer4 edits and updates file");
-			peer2.fileManager.writeToRelativeFile(filename, s5.getBytes());
-			peer2.update(filename, torrentInfo); // p4 -> v5
+			peer4.fileManager.writeToRelativeFile(filename, s5.getBytes());
+			peer4.update(filename, torrentInfo); // p4 -> v5
 
 		} catch (Exception e) {
 			e.printStackTrace();

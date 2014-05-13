@@ -181,8 +181,7 @@ public class ChordWrapper {
 
 		String hash = torrentInfo[0];
 
-		dht2.insert(new Key(hash),
-				Utils.concat(new byte[] { (byte) 255 }, encryptedTorrent));
+		dht2.insert(new Key(hash), PeerUtils.createDHT2Entry2(encryptedTorrent));
 
 		return torrentInfo;
 	}

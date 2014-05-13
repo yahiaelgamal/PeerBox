@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -13,14 +15,18 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Enumeration;
 import java.util.Set;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.rmi.CORBA.Util;
+import javax.swing.plaf.SliderUI;
 
 import org.json.simple.parser.ParseException;
 
+import de.uniba.wiai.lspi.chord.console.command.Wait;
 import de.uniba.wiai.lspi.chord.console.command.entry.Key;
 import de.uniba.wiai.lspi.chord.data.URL;
 import de.uniba.wiai.lspi.chord.service.Chord;
@@ -105,7 +111,8 @@ public class ChordWrapper {
 		torrentInfo[2] = (String) encryptionRes[1];
 		byte[] encryptedTorrent = (byte[]) encryptionRes[2];
 
-		dht2.insert(new Key(hash), Utils.concat(new byte[] {(byte)255}, encryptedTorrent));
+		dht2.insert(new Key(hash),
+				Utils.concat(new byte[] { (byte) 255 }, encryptedTorrent));
 
 		return torrentInfo;
 	}
@@ -126,7 +133,7 @@ public class ChordWrapper {
 
 		byte[] dhtEntry = (byte[]) (dht2.retrieve(new Key(hash)).toArray()[0]);
 		byte[] torrentBytes = Arrays.copyOfRange(dhtEntry, 1, dhtEntry.length);
-		
+
 		// decrypt torrent info
 		byte[] torrentDecrypted = Crypto.decryptAES(torrentBytes, key, iv);
 
@@ -230,22 +237,22 @@ public class ChordWrapper {
 		String[] torrentInfo = fileManager.getTorrentInfo(filename);
 
 		// download file
-		sync(filename,torrentInfo);
+		sync(filename, torrentInfo);
 	}
 
 	public static byte[] magicFunction(byte[] tempKey, byte[] key) {
 		return null;
 	}
 
-	private void sync(String filename, String[] torrentInfo) throws ServiceException,
-			InvalidKeyException, NoSuchAlgorithmException,
-			NoSuchPaddingException, IllegalBlockSizeException,
-			BadPaddingException, InvalidAlgorithmParameterException,
-			IOException, ParseException {
+	private void sync(String filename, String[] torrentInfo)
+			throws ServiceException, InvalidKeyException,
+			NoSuchAlgorithmException, NoSuchPaddingException,
+			IllegalBlockSizeException, BadPaddingException,
+			InvalidAlgorithmParameterException, IOException, ParseException {
 		String hash = torrentInfo[0];
 		byte[] key = Utils.fromHexString(torrentInfo[1]);
 		String iv = torrentInfo[2];
-		
+
 		byte[] dht2Entry = (byte[]) dht2.retrieve(new Key(hash)).toArray()[0];
 
 		if (Utils.isTorrentFile(dht2Entry)) {
@@ -261,7 +268,7 @@ public class ChordWrapper {
 			newTorrentInfo[0] = Utils.toHexString(key2);
 			newTorrentInfo[1] = Utils.toHexString(magicFunction(tempKey, key));
 			newTorrentInfo[2] = iv;
-			
+
 			fileManager.replaceEntry(filename, newTorrentInfo);
 			sync(filename, newTorrentInfo);
 		}
@@ -365,14 +372,13 @@ public class ChordWrapper {
 		String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
 
 		try {
+			System.out.println(Utils.getMyIP());
 			URL localURLDHT1 = new URL(PROTOCOL + "://"
-					+ Inet4Address.getLocalHost().getHostAddress() + ":"
+					+ Utils.getMyIP() + ":"
 					+ DHTPort1 + "/");
-
-			System.out.println(localURLDHT1);
-
+			
 			URL localURLDHT2 = new URL(PROTOCOL + "://"
-					+ Inet4Address.getLocalHost().getHostAddress() + ":"
+					+ Utils.getMyIP() + ":"
 					+ DHTPort2 + "/");
 
 			return new ChordWrapper(localURLDHT1, localURLDHT2, "initPeer");
@@ -390,11 +396,11 @@ public class ChordWrapper {
 		String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
 		try {
 			URL localURLDHT1 = new URL(PROTOCOL + "://"
-					+ Inet4Address.getLocalHost().getHostAddress() + ":"
+					+ Utils.getMyIP() + ":"
 					+ DHTPort1 + "/");
 
 			URL localURLDHT2 = new URL(PROTOCOL + "://"
-					+ Inet4Address.getLocalHost().getHostAddress() + ":"
+					+ Utils.getMyIP() + ":"
 					+ DHTPort2 + "/");
 
 			URL bootstrappedDHT1 = new URL(PROTOCOL + "://" + bootstrapDHT1
@@ -418,17 +424,16 @@ public class ChordWrapper {
 		// initialize network
 		ChordWrapper init = ChordWrapper.initNetwork(8000, 4000);
 
-
 		// joinExistingNetwork starts
 		// PropertiesLoader.loadPropertyFile();
 
-
-		ChordWrapper bootstrapper = ChordWrapper.joinNetwork(8001, 4001,
-				"192.168.1.1:8000", "192.168.1.1:4000");
+		// ChordWrapper bootstrapper = ChordWrapper.joinNetwork(8001, 4001,
+		// "192.168.1.1:8000", "192.168.1.1:4000");
 
 		String[] torrentinfo = null;
 
 		try {
+			Thread.sleep(5000);
 			torrentinfo = init.uploadFile("IMG_8840.JPG");
 			// the bootstrapper should know the torrentinfo somehow
 			// use sockets for testing sake
@@ -449,7 +454,7 @@ public class ChordWrapper {
 		}
 
 		try {
-			bootstrapper.downloadFile(torrentinfo);
+			// bootstrapper.downloadFile(torrentinfo);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

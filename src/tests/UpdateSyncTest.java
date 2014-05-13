@@ -9,17 +9,6 @@ import de.uniba.wiai.lspi.chord.service.PropertiesLoader;
 
 public class UpdateSyncTest {
 
-	public static URL[] makeURLs(int i) throws MalformedURLException {
-		URL localURL0 = new URL(ChordWrapper.PROTOCOL + "://localhost:"
-				+ (4000 + i) + "/");
-		URL localURL1 = new URL(ChordWrapper.PROTOCOL + "://localhost:"
-				+ (5000 + i) + "/");
-		URL localURL2 = new URL(ChordWrapper.PROTOCOL + "://localhost:"
-				+ (6000 + i) + "/");
-		return new URL[] { localURL0, localURL1, localURL2 };
-
-	}
-
 	// scenario:
 	// 1. peer0 uploads coolFile.txt that contains the text "file version 1"
 	// 2. peer1 and peer2 download file
@@ -31,17 +20,17 @@ public class UpdateSyncTest {
 		try {
 
 			PropertiesLoader.loadPropertyFile();
-			URL[] bootsrap = makeURLs(0);
+			URL[] bootsrap = TestUtils.makeURLs(0);
 
 			System.out.println(Arrays.toString(bootsrap));
 			ChordWrapper peer0 = new ChordWrapper(bootsrap[0], bootsrap[1],
 					"owner/");
 
-			URL[] urls = makeURLs(1);
+			URL[] urls = TestUtils.makeURLs(1);
 			ChordWrapper peer1 = new ChordWrapper(urls[0], urls[1],
 					bootsrap[0], bootsrap[1], "peer1/");
 
-			urls = makeURLs(2);
+			urls = TestUtils.makeURLs(2);
 			ChordWrapper peer2 = new ChordWrapper(urls[0], urls[1],
 					bootsrap[0], bootsrap[1], "peer2/");
 
@@ -80,25 +69,25 @@ public class UpdateSyncTest {
 		try {
 
 			PropertiesLoader.loadPropertyFile();
-			URL[] bootsrap = makeURLs(0);
+			URL[] bootsrap = TestUtils.makeURLs(0);
 
 			System.out.println(Arrays.toString(bootsrap));
 			ChordWrapper peer0 = new ChordWrapper(bootsrap[0], bootsrap[1],
 					"owner/");
 
-			URL[] urls = makeURLs(1);
+			URL[] urls = TestUtils.makeURLs(1);
 			ChordWrapper peer1 = new ChordWrapper(urls[0], urls[1],
 					bootsrap[0], bootsrap[1], "peer1/");
 
-			urls = makeURLs(2);
+			urls = TestUtils.makeURLs(2);
 			ChordWrapper peer2 = new ChordWrapper(urls[0], urls[1],
 					bootsrap[0], bootsrap[1], "peer2/");
 
-			urls = makeURLs(3);
+			urls = TestUtils.makeURLs(3);
 			ChordWrapper peer3 = new ChordWrapper(urls[0], urls[1],
 					bootsrap[0], bootsrap[1], "peer3/");
 
-			urls = makeURLs(4);
+			urls = TestUtils.makeURLs(4);
 			ChordWrapper peer4 = new ChordWrapper(urls[0], urls[1],
 					bootsrap[0], bootsrap[1], "peer4/");
 

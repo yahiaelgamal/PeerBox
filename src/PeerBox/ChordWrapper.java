@@ -4,9 +4,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -15,19 +12,17 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Enumeration;
 import java.util.Scanner;
 import java.util.Set;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.rmi.CORBA.Util;
-import javax.swing.plaf.SliderUI;
+
+import networking.ServerClient;
 
 import org.json.simple.parser.ParseException;
 
-import de.uniba.wiai.lspi.chord.console.command.Wait;
 import de.uniba.wiai.lspi.chord.console.command.entry.Key;
 import de.uniba.wiai.lspi.chord.data.URL;
 import de.uniba.wiai.lspi.chord.service.Chord;
@@ -43,10 +38,14 @@ public class ChordWrapper {
 
 	// use for testing on the JVM/thread
 	public static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.LOCAL_PROTOCOL);
+	// Used for networking p2p 
+	public static int NETWORKING_PORT = 5678;
 
 	public Chord dht1;
 	public Chord dht2;
 	public FileManager fileManager;
+	public ServerClient networking;
+	
 
 	// In case of a creator
 	public ChordWrapper(URL myURL1, URL myURL2, String myFolder) {
@@ -58,6 +57,8 @@ public class ChordWrapper {
 			this.dht2.create(myURL2);
 
 			this.fileManager = new FileManager(myFolder);
+			
+			this.networking = new ServerClient(NETWORKING_PORT, this);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -74,6 +75,8 @@ public class ChordWrapper {
 			this.dht2.join(myURL2, bootstrapURL2);
 
 			this.fileManager = new FileManager(myFolder);
+			
+			this.networking = new ServerClient(NETWORKING_PORT, this);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -462,5 +465,14 @@ public class ChordWrapper {
 			e.printStackTrace();
 		}
 
+	}
+
+	// will be called when the peer receives something
+	public void receivedBytes(byte[] bs) {
+	}
+	
+	// call to send bytes to a peer
+	public void sendBytes(byte[] bs, String ip, int port) {
+		this.networking.sendBytes(bs, ip, port);
 	}
 }

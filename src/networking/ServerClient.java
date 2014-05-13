@@ -5,13 +5,17 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import PeerBox.ChordWrapper;
+
 
 public class ServerClient {
 
 	
 	ServerSocket listener;
-	public ServerClient(int port) throws IOException{
+	ChordWrapper chordWrapper;
+	public ServerClient(int port, ChordWrapper owner) throws IOException{
 		this.listener = new ServerSocket(port);
+		this.chordWrapper = owner;
 		Runnable r = new Runnable() {
 			@Override
 			public void run() {
@@ -22,7 +26,13 @@ public class ServerClient {
 	                	System.out.println("I got this ");
 	                	byte[] bs = new byte[1024];
 	                	socket.getInputStream().read(bs);
-	                	System.out.println("I have recieved this: " + new String(bs));
+	                	
+	                	// for testing 
+	                	if(chordWrapper != null)
+		                	chordWrapper.receivedBytes(bs);
+	                	else
+	                		System.out.println("chord wrapper is null");
+	                	System.out.println("received " + new String(bs));
 					}
 				} catch(IOException e) {
 					e.printStackTrace();
@@ -51,17 +61,4 @@ public class ServerClient {
 		return true;
 	}
 	
-	
-	public static void main(String[] args) {
-		try {
-			int port1 = 3000;
-			ServerSocket server = new ServerSocket(port1);
-			
-			Socket coming = server.accept();
-			// put in a new thread
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
 }

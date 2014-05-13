@@ -40,7 +40,7 @@ public class ChordWrapper {
 
 	// In case of a creator
 	public ChordWrapper(URL myURL1, URL myURL2, URL myURL3, 
-			String myFolder, PublicKey publicKey, PrivateKey privateKey) {
+			String myFolder) {
 		try {
 			this.dht1 = new ChordImpl();
 			this.dht1.create(myURL1);
@@ -53,8 +53,39 @@ public class ChordWrapper {
 			
 			this.fileManager = new FileManager(myFolder);
 			
-		    this.publicKey = publicKey;
-		    this.privateKey = privateKey;
+			try
+			{			
+				//get macAddress
+				InetAddress address = InetAddress.getLocalHost();
+				NetworkInterface nwi = NetworkInterface.getByInetAddress(address);
+				byte mac[] = nwi.getHardwareAddress();
+				if(mac != null) {
+					StringBuilder macAddress = new StringBuilder();
+					for (int i = 0; i < mac.length; i++) {
+						macAddress.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
+					}
+					
+					// retrieve from DHT3
+					Set<Serializable> PK_receiver = getPiece3(new Key(macAddress.toString()));	
+					if(PK_receiver == null){
+						
+						// not found in DHT3, generate
+						KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+					    keyGen.initialize(1024);
+					    KeyPair key = keyGen.generateKeyPair();
+					    publicKey = key.getPublic();
+					    privateKey = key.getPrivate();
+					    
+					    // Insert public key in DHT3 and private key locally
+					    dht3.insert(new Key(macAddress.toString()), publicKey);
+					    fileManager.writeToRelativeFile("private_key.txt", privateKey.toString().getBytes());
+					}
+				}
+			}
+			catch(Exception e)
+			{
+				System.out.println("ERROR");
+			}
 		    
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -76,9 +107,10 @@ public class ChordWrapper {
 			this.dht3.join(myURL3, bootstrapURL3);
 			
 			this.fileManager = new FileManager(myFolder);
-			//get macAddress
+
 			try
-			{
+			{			
+				//get macAddress
 				InetAddress address = InetAddress.getLocalHost();
 				NetworkInterface nwi = NetworkInterface.getByInetAddress(address);
 				byte mac[] = nwi.getHardwareAddress();
@@ -87,15 +119,21 @@ public class ChordWrapper {
 					for (int i = 0; i < mac.length; i++) {
 						macAddress.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
 					}
+					
+					// retrieve from DHT3
 					Set<Serializable> PK_receiver = getPiece3(new Key(macAddress.toString()));	
 					if(PK_receiver == null){
+						
+						// not found in DHT3, generate
 						KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
 					    keyGen.initialize(1024);
 					    KeyPair key = keyGen.generateKeyPair();
-					    PublicKey publicKey = key.getPublic();
-					    PrivateKey privateKey = key.getPrivate();
-					    dht3.insert(new Key(macAddress.toString()), publicKey);
+					    publicKey = key.getPublic();
+					    privateKey = key.getPrivate();
 					    
+					    // Insert public key in DHT3 and private key locally
+					    dht3.insert(new Key(macAddress.toString()), publicKey);
+					    fileManager.writeToRelativeFile("private_key.txt", privateKey.toString().getBytes());
 					}
 				}
 			}
@@ -103,14 +141,7 @@ public class ChordWrapper {
 			{
 				System.out.println("ERROR");
 			}
-//			KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-//		    keyGen.initialize(1024);
-//		    KeyPair key = keyGen.generateKeyPair();
-//		    PublicKey publicKey = key.getPublic();
-//		    PrivateKey privateKey = key.getPrivate();
-//			
-			this.publicKey = publicKey;
-			this.privateKey = privateKey;
+		    
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -332,9 +363,8 @@ public class ChordWrapper {
 		    PublicKey publicKey = key.getPublic();
 		    PrivateKey privateKey = key.getPrivate();
 		    
-		    
 			ChordWrapper first = new ChordWrapper(localURL1, localURL2, 
-					localURL3, "peer0/", publicKey, privateKey);
+					localURL3, "peer0/");
 			System.out.println("Created first peer");
 
 			ChordWrapper[] wrappers = new ChordWrapper[nrPeers];

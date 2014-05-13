@@ -583,7 +583,6 @@ public class ChordWrapper {
 	}
 	// will be called when the peer receives something
 	public void receivedBytes(byte[] bs)  {
-		try {
 			String s = new String(bs);
 			JSONObject map = (JSONObject) JSONValue.parse(s);
 			String filename = (String) map.get("filename");
@@ -593,14 +592,27 @@ public class ChordWrapper {
 			System.out.println("Downloading");
 			System.out.println(torrentInfo);
 			String[] torrentInfoArray = {torrentInfo.get(0), torrentInfo.get(1), torrentInfo.get(2)};
-			this.sync(filename, torrentInfoArray);
-		}catch (ParseException | InvalidKeyException | NoSuchAlgorithmException
-					| NoSuchPaddingException | IllegalBlockSizeException
-					| BadPaddingException | InvalidAlgorithmParameterException
-					| ServiceException | IOException e) {
-			e.printStackTrace();
-			System.exit(3);
-		}
+			try {
+				this.sync(filename, torrentInfoArray);
+			} catch (InvalidKeyException e) {
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				e.printStackTrace();
+			} catch (NoSuchPaddingException e) {
+				e.printStackTrace();
+			} catch (IllegalBlockSizeException e) {
+				e.printStackTrace();
+			} catch (BadPaddingException e) {
+				e.printStackTrace();
+			} catch (InvalidAlgorithmParameterException e) {
+				e.printStackTrace();
+			} catch (ServiceException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
 	}
 	
 	// call to send bytes to a peer

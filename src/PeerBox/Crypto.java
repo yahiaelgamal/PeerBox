@@ -120,9 +120,6 @@ public class Crypto {
 			byte[] encrypted = pkCipher.doFinal(data);
 			return encrypted;
 
-		} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-
-			e.printStackTrace();
 		} catch (InvalidKeyException e) {
 
 			e.printStackTrace();
@@ -131,6 +128,12 @@ public class Crypto {
 			e.printStackTrace();
 		} catch (BadPaddingException e) {
 
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 

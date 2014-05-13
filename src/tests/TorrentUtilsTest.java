@@ -65,9 +65,10 @@ public class TorrentUtilsTest {
 		 try {
 		 PropertiesLoader.loadPropertyFile();
 		
-		 URL localURL1 = new URL(PROTOCOL + "://localhost:8000/");
-		 URL localURL2 = new URL(PROTOCOL + "://localhost:4000/");
-		 ChordWrapper first = new ChordWrapper(localURL1, localURL2,
+		 URL localURL1 = new URL(PROTOCOL + "://localhost:4000/");
+		 URL localURL2 = new URL(PROTOCOL + "://localhost:6000/");
+		 URL localURL3 = new URL(PROTOCOL + "://localhost:8000/");
+		 ChordWrapper first = new ChordWrapper(localURL1, localURL2, localURL3,
 		 "peer0/");
 		 System.out.println("Created first peer");
 		
@@ -75,16 +76,17 @@ public class TorrentUtilsTest {
 		 wrappers[0] = first;
 		
 		 for (int i = 1; i < nrPeers; i++) {
-		 int port1 = 8000 + i;
-		 int port2 = 4000 + i;
-		
-		 URL newURL1 = new URL(PROTOCOL + "://localhost:" + port1 + "/");
-		 URL newURL2 = new URL(PROTOCOL + "://localhost:" + port2 + "/");
-		
-		 // localURL (URL for someone in the network) will be known by a
-		 // higher level discovery mechanism
-		 wrappers[i] = new ChordWrapper(newURL1, newURL2, localURL1,
-		 localURL2, "peer" + i + "/");
+			 int port1 = 4000 + i;
+			 int port2 = 6000 + i;
+			 int port3 = 8000 + i;
+			 URL newURL1 = new URL(PROTOCOL + "://localhost:" + port1 + "/");
+			 URL newURL2 = new URL(PROTOCOL + "://localhost:" + port2 + "/");
+			 URL newURL3 = new URL(PROTOCOL + "://localhost:" + port3 + "/");
+			
+			 // localURL (URL for someone in the network) will be known by a
+			 // higher level discovery mechanism
+			 wrappers[i] = new ChordWrapper(newURL1, newURL2, newURL3, localURL1,
+			 localURL2, localURL3, "peer" + i + "/");
 		 }
 		
 		 System.out.println("peer[0] is splitting files");

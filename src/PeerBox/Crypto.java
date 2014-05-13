@@ -4,6 +4,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.spec.InvalidParameterSpecException;
 
 import javax.crypto.BadPaddingException;
@@ -106,5 +107,33 @@ public class Crypto {
 
 	public static int getDigestLength() throws NoSuchAlgorithmException {
 		return MessageDigest.getInstance(HASH_ALGO).getDigestLength();
+	}
+	public static byte[] encryptWithPK(PublicKey pk, byte[] data){
+
+		try {
+
+			// create RSA public key cipher
+			Cipher pkCipher = Cipher.getInstance("RSA");
+			pkCipher.init(Cipher.ENCRYPT_MODE, pk);  
+
+			//encode
+			byte[] encrypted = pkCipher.doFinal(data);
+			return encrypted;
+
+		} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+
+			e.printStackTrace();
+		} catch (InvalidKeyException e) {
+
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+
+			e.printStackTrace();
+		}
+
+		return null;
 	}
 }

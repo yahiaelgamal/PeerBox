@@ -5,12 +5,17 @@ import java.util.Set;
 
 import de.uniba.wiai.lspi.chord.data.ID;
 import de.uniba.wiai.lspi.chord.data.URL;
+import de.uniba.wiai.lspi.chord.service.AsynChord;
 import de.uniba.wiai.lspi.chord.service.Chord;
+import de.uniba.wiai.lspi.chord.service.ChordCallback;
+import de.uniba.wiai.lspi.chord.service.ChordFuture;
+import de.uniba.wiai.lspi.chord.service.ChordRetrievalFuture;
 import de.uniba.wiai.lspi.chord.service.Key;
+import de.uniba.wiai.lspi.chord.service.Report;
 import de.uniba.wiai.lspi.chord.service.ServiceException;
 import de.uniba.wiai.lspi.chord.service.impl.ChordImpl;
 
-public class SecureChord implements Chord{
+public class SecureChord implements Chord, Report, AsynChord{
 	ChordImpl originalChord;
 
 	public SecureChord() {
@@ -79,12 +84,67 @@ public class SecureChord implements Chord{
 
 	@Override
 	public Set<Serializable> retrieve(Key key) throws ServiceException {
-		System.out.println("I AM RETRIEVING ");
         return originalChord.retrieve(key);
 	}
 
 	@Override
 	public void remove(Key key, Serializable object) throws ServiceException {
         originalChord.remove(key, object);
+	}
+
+	@Override
+	public void retrieve(Key key, ChordCallback callback) {
+        originalChord.retrieve(key, callback);
+	}
+
+	@Override
+	public void insert(Key key, Serializable entry, ChordCallback callback) {
+	    originalChord.insert(key, entry, callback);
+	}
+
+	@Override
+	public void remove(Key key, Serializable entry, ChordCallback callback) {
+        originalChord.remove(key, entry, callback);
+		
+	}
+
+	@Override
+	public ChordRetrievalFuture retrieveAsync(Key key) {
+        return originalChord.retrieveAsync(key);
+	}
+
+	@Override
+	public ChordFuture insertAsync(Key key, Serializable entry) {
+        return originalChord.insertAsync(key, entry);
+	}
+
+	@Override
+	public ChordFuture removeAsync(Key key, Serializable entry) {
+       return originalChord.removeAsync(key, entry);
+	}
+
+	@Override
+	public String printEntries() {
+        return originalChord.printEntries();
+	}
+
+	@Override
+	public String printFingerTable() {
+        return originalChord.printFingerTable();
+	}
+
+	@Override
+	public String printSuccessorList() {
+        return originalChord.printSuccessorList();
+	}
+
+	@Override
+	public String printReferences() {
+        return originalChord.printReferences();
+	}
+
+	@Override
+	public String printPredecessor() {
+        return originalChord.printPredecessor();
 	}
 }

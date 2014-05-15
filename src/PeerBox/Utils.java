@@ -83,7 +83,7 @@ public class Utils {
 	}
 
 	public static boolean isTorrentFile(byte[] data) {
-		if ((data[0]) == 0) {
+		if ((data[0]) == (byte)0x00) {
 			return false;
 		} else {
 			return true;

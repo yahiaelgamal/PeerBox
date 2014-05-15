@@ -12,6 +12,7 @@ import org.json.simple.JSONObject;
 public class FileManager {
 	public String workingDir;
 	public HashMap<String, String[]> torrentInfos;
+	public HashMap<String, TorrentConfig> torrentConfigs;
 	public final int PIECE_SIZE = 512 * 1024;
 
 	public FileManager(String folderName) {
@@ -21,6 +22,7 @@ public class FileManager {
 				+ File.separator + folderName;
 
 		torrentInfos = new HashMap<String, String[]>();
+		torrentConfigs = new HashMap<String, TorrentConfig>();
 
 		// System.out.println("working dir : " + workingDir);
 		File dir = new File(workingDir);
@@ -32,14 +34,20 @@ public class FileManager {
 		return torrentInfos.get(filename);
 	}
 	
+	public TorrentConfig getTorrentConfig(String filename) {
+		return torrentConfigs.get(filename);
+	}
+	
 	public void addFile(String filename, String[] torrentInfo) {
-		torrentInfos.put(filename, torrentInfo);
+		if (torrentInfos.containsKey(filename)) {
+			torrentInfos.put(filename, torrentInfo);
+		}
+		else {
+			torrentInfos.remove(filename);
+			torrentInfos.put(filename, torrentInfo);
+		}
 	}
 
-	public void replaceTorrentInfo(String filename, String[] newTorrentInfo) {
-		torrentInfos.remove(filename);
-		torrentInfos.put(filename, newTorrentInfo);
-	}
 
 	public String buildFullPath(String relativePath) {
 		return workingDir + File.separator + relativePath;

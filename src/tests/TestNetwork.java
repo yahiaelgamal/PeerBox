@@ -37,7 +37,7 @@ public class TestNetwork {
 		
 		ArrayList<String> torrentInfoArrayList = PeerBox.Utils
 				.convertFromArrayToArrayList(torrentInfo);
-		HashMap<String, Object> map = new HashMap<>();
+		HashMap<String, Object> map = new HashMap<String, Object>();
 		map.put("filename", "IMG_8840.JPG");
 		map.put("torrentInfo", torrentInfoArrayList);
 		String jsonString = JSONValue.toJSONString(map);

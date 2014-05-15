@@ -27,9 +27,9 @@ public class TestNetwork {
 		PropertiesLoader.loadPropertyFile();
 		URL[] urls0 = TestUtils.makeURLs(0);
 		URL[] urls1 = TestUtils.makeURLs(1);
-		ChordWrapper peer0  = new ChordWrapper(urls0[0], urls0[1], "peer0");
+		ChordWrapper peer0  = new ChordWrapper(urls0[0], urls0[1], urls0[2], "peer0");
 		
-		ChordWrapper peer1  = new ChordWrapper(urls1[0], urls1[1], urls0[0], urls0[1], "peer1");
+		ChordWrapper peer1  = new ChordWrapper(urls1[0], urls1[1], urls1[2], urls0[0], urls0[1], urls0[2], "peer1");
 		
 		
 		System.out.println("peer0 uploading file");

@@ -23,16 +23,16 @@ public class UpdateSyncTest {
 			URL[] bootsrap = TestUtils.makeURLs(0);
 
 			System.out.println(Arrays.toString(bootsrap));
-			ChordWrapper peer0 = new ChordWrapper(bootsrap[0], bootsrap[1],
+			ChordWrapper peer0 = new ChordWrapper(bootsrap[0], bootsrap[1], bootsrap[2],
 					"owner/");
 
 			URL[] urls = TestUtils.makeURLs(1);
-			ChordWrapper peer1 = new ChordWrapper(urls[0], urls[1],
-					bootsrap[0], bootsrap[1], "peer1/");
+			ChordWrapper peer1 = new ChordWrapper(urls[0], urls[1], urls[2],
+					bootsrap[0], bootsrap[1], bootsrap[2], "peer1/");
 
 			urls = TestUtils.makeURLs(2);
-			ChordWrapper peer2 = new ChordWrapper(urls[0], urls[1],
-					bootsrap[0], bootsrap[1], "peer2/");
+			ChordWrapper peer2 = new ChordWrapper(urls[0], urls[1], urls[2],
+					bootsrap[0], bootsrap[1], bootsrap[2], "peer2/");
 
 			System.out.println("created 3 peers");
 
@@ -72,24 +72,24 @@ public class UpdateSyncTest {
 			URL[] bootsrap = TestUtils.makeURLs(0);
 
 			System.out.println(Arrays.toString(bootsrap));
-			ChordWrapper peer0 = new ChordWrapper(bootsrap[0], bootsrap[1],
+			ChordWrapper peer0 = new ChordWrapper(bootsrap[0], bootsrap[1],bootsrap[2],
 					"owner/");
 
 			URL[] urls = TestUtils.makeURLs(1);
-			ChordWrapper peer1 = new ChordWrapper(urls[0], urls[1],
-					bootsrap[0], bootsrap[1], "peer1/");
+			ChordWrapper peer1 = new ChordWrapper(urls[0], urls[1], urls[2],
+					bootsrap[0], bootsrap[1],bootsrap[2], "peer1/");
 
 			urls = TestUtils.makeURLs(2);
-			ChordWrapper peer2 = new ChordWrapper(urls[0], urls[1],
-					bootsrap[0], bootsrap[1], "peer2/");
+			ChordWrapper peer2 = new ChordWrapper(urls[0], urls[1], urls[2],
+					bootsrap[0], bootsrap[1],bootsrap[2], "peer2/");
 
 			urls = TestUtils.makeURLs(3);
-			ChordWrapper peer3 = new ChordWrapper(urls[0], urls[1],
-					bootsrap[0], bootsrap[1], "peer3/");
+			ChordWrapper peer3 = new ChordWrapper(urls[0], urls[1], urls[2],
+					bootsrap[0], bootsrap[1],bootsrap[2], "peer3/");
 
 			urls = TestUtils.makeURLs(4);
-			ChordWrapper peer4 = new ChordWrapper(urls[0], urls[1],
-					bootsrap[0], bootsrap[1], "peer4/");
+			ChordWrapper peer4 = new ChordWrapper(urls[0], urls[1], urls[2],
+					bootsrap[0], bootsrap[1],bootsrap[2], "peer4/");
 
 			System.out.println("created 5 peers");
 

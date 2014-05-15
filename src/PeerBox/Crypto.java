@@ -109,9 +109,7 @@ public class Crypto {
 		return MessageDigest.getInstance(HASH_ALGO).getDigestLength();
 	}
 	public static byte[] encryptWithPK(PublicKey pk, byte[] data){
-
 		try {
-
 			// create RSA public key cipher
 			Cipher pkCipher = Cipher.getInstance("RSA");
 			pkCipher.init(Cipher.ENCRYPT_MODE, pk);  
@@ -136,4 +134,5 @@ public class Crypto {
 
 		return null;
 	}
+	
 }

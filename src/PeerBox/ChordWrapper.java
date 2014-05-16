@@ -26,12 +26,13 @@ import org.json.simple.JSONObject;
 import networking.ServerClient;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
+
+import SecureChord.SecureChord;
 import de.uniba.wiai.lspi.chord.console.command.entry.Key;
 import de.uniba.wiai.lspi.chord.data.URL;
 import de.uniba.wiai.lspi.chord.service.Chord;
 import de.uniba.wiai.lspi.chord.service.PropertiesLoader;
 import de.uniba.wiai.lspi.chord.service.ServiceException;
-import de.uniba.wiai.lspi.chord.service.impl.ChordImpl;
 
 public class ChordWrapper {
 
@@ -64,13 +65,13 @@ public class ChordWrapper {
 	public ChordWrapper(URL myURL1, URL myURL2, URL myURL3, 
 			String myFolder) {
 		try {
-			this.dht1 = new ChordImpl();
+			this.dht1 = new SecureChord();
 			this.dht1.create(myURL1);
 
-			this.dht2 = new ChordImpl();
+			this.dht2 = new SecureChord();
 			this.dht2.create(myURL2);
 
-			this.dht3 = new ChordImpl();
+			this.dht3 = new SecureChord();
 			this.dht3.create(myURL3);
 			
 			this.fileManager = new FileManager(myFolder);
@@ -85,14 +86,14 @@ public class ChordWrapper {
 	public ChordWrapper(URL myURL1, URL myURL2, URL myURL3, URL bootstrapURL1,
 			URL bootstrapURL2, URL bootstrapURL3, String myFolder) {
 		try {
-			this.dht1 = new ChordImpl();
+			this.dht1 = new SecureChord();
 			this.dht1.join(myURL1, bootstrapURL1);
 
-			this.dht2 = new ChordImpl();
+			this.dht2 = new SecureChord();
 			this.dht2.join(myURL2, bootstrapURL2);
 
-
-			this.dht3 = new ChordImpl();
+				
+			this.dht3 = new SecureChord();
 			this.dht3.join(myURL3, bootstrapURL3);
 
 			this.fileManager = new FileManager(myFolder);

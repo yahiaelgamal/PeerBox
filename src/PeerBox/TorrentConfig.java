@@ -67,7 +67,7 @@ public class TorrentConfig {
 
 	public boolean writeToFile(String fullPath) {
 		return FileManager.writeToAbsoluteFile(fullPath, this.toJSONString()
-				.getBytes());
+				.getBytes(), false);
 	}
 
 	public Object get(String key) {

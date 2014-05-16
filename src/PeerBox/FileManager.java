@@ -1,9 +1,17 @@
 package PeerBox;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.RandomAccessFile;
+import java.math.BigInteger;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.spec.RSAPrivateKeySpec;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,15 +67,15 @@ public class FileManager {
 		return splitted;
 	}
 
-	public boolean writeToRelativeFile(String relativePath, byte[] content) {
+	public boolean writeToRelativeFile(String relativePath, byte[] content, boolean append) {
 		String fullPath = buildFullPath(relativePath);
-		return FileManager.writeToAbsoluteFile(fullPath, content);
+		return FileManager.writeToAbsoluteFile(fullPath, content, append);
 	}
 
-	public static boolean writeToAbsoluteFile(String fullPath, byte[] content) {
+	public static boolean writeToAbsoluteFile(String fullPath, byte[] content, boolean append) {
 		try {
 			File file = new File(fullPath);
-			FileOutputStream fos = new FileOutputStream(file);
+			FileOutputStream fos = new FileOutputStream(file, append);
 			fos.write(content);
 			fos.flush();
 			fos.close();
@@ -105,5 +113,73 @@ public class FileManager {
 		String jsonString = JSONObject.toJSONString(map);
 		return jsonString;
 	}
+	
+	public void savePrivateKey(PrivateKey privateKey) throws IOException{  
+		String fileName = "Private.key";
+		FileOutputStream fos = null;  
+		ObjectOutputStream oos = null;  
+
+		try {  
+
+			KeyFactory keyFactory = KeyFactory.getInstance("RSA");  
+			RSAPrivateKeySpec rsaPrivKeySpec = keyFactory.getKeySpec(
+					privateKey, RSAPrivateKeySpec.class);
+			
+			fos = new FileOutputStream(fileName);  
+			oos = new ObjectOutputStream(new BufferedOutputStream(fos));  
+
+			oos.writeObject(rsaPrivKeySpec.getModulus());  
+			oos.writeObject(rsaPrivKeySpec.getPrivateExponent());     
+
+			System.out.println(fileName + " generated successfully");  
+		} catch (Exception e) {  
+			e.printStackTrace();  
+		}  
+		finally{  
+			if(oos != null){  
+				oos.close();  
+
+				if(fos != null){  
+					fos.close();  
+				}  
+			}  
+		}    
+	}
+	public PrivateKey readPrivateKey(){
+		String fileName = "Private.key";
+		FileInputStream fis = null;  
+		ObjectInputStream ois = null;  
+		try {  
+			fis = new FileInputStream(new File(fileName));  
+			ois = new ObjectInputStream(fis);  
+
+			BigInteger modulus = (BigInteger) ois.readObject();  
+			BigInteger exponent = (BigInteger) ois.readObject();  
+
+			//Get Private Key  
+			RSAPrivateKeySpec rsaPrivateKeySpec = new RSAPrivateKeySpec(modulus, exponent);  
+			KeyFactory fact = KeyFactory.getInstance("RSA");  
+			PrivateKey privateKey = fact.generatePrivate(rsaPrivateKeySpec);  
+
+			return privateKey;  
+
+		} catch (Exception e) {  
+			e.printStackTrace();  
+		}  
+		finally{  
+			if(ois != null){  
+				try {
+					ois.close();
+					if(fis != null){  
+						fis.close();  
+					}  
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}  
+			}  
+		}  
+		return null;  
+	} 
 
 }

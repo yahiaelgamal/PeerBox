@@ -39,7 +39,7 @@ public class UpdateSyncTest {
 			System.out.println("created 3 peers");
 
 			String s = "File version 1";
-			peer0.fileManager.writeToRelativeFile("coolFile.txt", s.getBytes());
+			peer0.fileManager.writeToRelativeFile("coolFile.txt", s.getBytes(), false);
 
 			System.out.println("Peer 0 uploading coolfile.txt");
 			String[] torrentInfo = peer0.uploadFile("coolFile.txt");
@@ -54,7 +54,7 @@ public class UpdateSyncTest {
 			peer2.sync("coolFile.txt");
 
 			peer1.fileManager.writeToRelativeFile("coolFile.txt",
-					"File version 2".getBytes());
+					"File version 2".getBytes(), false);
 			System.out.println("Peer 1 edited file");
 
 			peer1.update("coolFile.txt", torrentInfo);
@@ -103,7 +103,7 @@ public class UpdateSyncTest {
 			String s5 = "File version 5";
 
 			peer0.fileManager
-					.writeToRelativeFile(filename, s1.getBytes()); // p0 -> v1
+					.writeToRelativeFile(filename, s1.getBytes(), false); // p0 -> v1
 
 			System.out.println("Peer 0 uploading " + filename);
 			String[] torrentInfo = peer0.uploadFile(filename);
@@ -121,21 +121,21 @@ public class UpdateSyncTest {
 			peer3.sync(filename);
 
 			System.out.println("Peer 1 edits and updates file");
-			peer1.fileManager.writeToRelativeFile(filename, s2.getBytes());
+			peer1.fileManager.writeToRelativeFile(filename, s2.getBytes(), false);
 			String[] temp1 = peer1.update(filename, torrentInfo); // p1 -> v2
 
 			System.out.println("Peer 2 syncs file after 1 remote update");
 			peer2.sync(filename); // p2 -> v2
 			
 			System.out.println("Peer 2 edits and updates file");
-			peer2.fileManager.writeToRelativeFile(filename, s3.getBytes());
+			peer2.fileManager.writeToRelativeFile(filename, s3.getBytes(), false);
 			peer2.update(filename, torrentInfo); // p2 -> v3
 			
 			System.out.println("Peer 3 syncs file after 2 remote updates");
 			peer3.sync(filename); // p3 -> v3
 			
 			System.out.println("Peer 3 edits and updates file");
-			peer3.fileManager.writeToRelativeFile(filename, s4.getBytes());
+			peer3.fileManager.writeToRelativeFile(filename, s4.getBytes(), false);
 			peer3.update(filename, torrentInfo); // p3 -> v4
 			
 			System.out.println("Peer 0 syncs file after 3 remote update");
@@ -149,7 +149,7 @@ public class UpdateSyncTest {
 			peer4.sync(filename); // p4 -> v4
 			
 			System.out.println("Peer4 edits and updates file");
-			peer4.fileManager.writeToRelativeFile(filename, s5.getBytes());
+			peer4.fileManager.writeToRelativeFile(filename, s5.getBytes(), false);
 			peer4.update(filename, torrentInfo); // p4 -> v5
 
 		} catch (Exception e) {

@@ -4,30 +4,26 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.net.*;
 import java.util.Set;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.InvalidParameterSpecException;
-import java.security.spec.X509EncodedKeySpec;
+import java.security.spec.RSAPublicKeySpec;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidParameterSpecException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Scanner;
-import java.util.Set;
 import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import org.json.simple.JSONObject;
 import networking.ServerClient;
-
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
 import de.uniba.wiai.lspi.chord.console.command.entry.Key;
@@ -43,8 +39,8 @@ public class ChordWrapper {
 	public static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
 //	public static String PROTOCOL = URL.KNOWN_PROTOCOLS.get(URL.LOCAL_PROTOCOL);
 
-	PublicKey publicKey;
-	PrivateKey privateKey;
+	public PublicKey publicKey;
+	public PrivateKey privateKey;
 	// public static String PROTOCOL =
 //	 URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL);
 
@@ -78,34 +74,7 @@ public class ChordWrapper {
 			this.dht3.create(myURL3);
 			
 			this.fileManager = new FileManager(myFolder);
-						
-			//get macAddress
-			InetAddress address = InetAddress.getLocalHost();
-			NetworkInterface nwi = NetworkInterface.getByInetAddress(address);
-			byte mac[] = nwi.getHardwareAddress();
-			if(mac != null) {
-				StringBuilder macAddress = new StringBuilder();
-				for (int i = 0; i < mac.length; i++) {
-					macAddress.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
-				}
-				
-				// retrieve from DHT3
-				Set<Serializable> PK_receiver = getPiece3(new Key(macAddress.toString()));	
-				if(PK_receiver == null){
-					
-					// not found in DHT3, generate
-					KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-				    keyGen.initialize(1024);
-				    KeyPair key = keyGen.generateKeyPair();
-				    publicKey = key.getPublic();
-				    privateKey = key.getPrivate();
-				    
-				    // Insert public key in DHT3 and private key locally
-				    dht3.insert(new Key(macAddress.toString()), publicKey);
-				    fileManager.writeToRelativeFile("private_key.txt", privateKey.toString().getBytes());
-				}
-			}
-			
+
 			this.networking = new ServerClient(getNetworkingPort(), this);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -122,12 +91,12 @@ public class ChordWrapper {
 			this.dht2 = new ChordImpl();
 			this.dht2.join(myURL2, bootstrapURL2);
 
-				
+
 			this.dht3 = new ChordImpl();
 			this.dht3.join(myURL3, bootstrapURL3);
-			
+
 			this.fileManager = new FileManager(myFolder);
-			
+
 			//get macAddress
 			InetAddress address = InetAddress.getLocalHost();
 			NetworkInterface nwi = NetworkInterface.getByInetAddress(address);
@@ -137,23 +106,25 @@ public class ChordWrapper {
 				for (int i = 0; i < mac.length; i++) {
 					macAddress.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
 				}
-				
+
 				// retrieve from DHT3
-				Set<Serializable> PK_receiver = getPiece3(new Key(macAddress.toString()));	
+				PublicKey PK_receiver;
+				PK_receiver = getPiece3(new Key(macAddress.toString()));	
 				if(PK_receiver == null){
-					
 					// not found in DHT3, generate
 					KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-				    keyGen.initialize(1024);
-				    KeyPair key = keyGen.generateKeyPair();
-				    publicKey = key.getPublic();
-				    privateKey = key.getPrivate();
-				    
-				    // Insert public key in DHT3 and private key locally
-				    dht3.insert(new Key(macAddress.toString()), publicKey);
-				    fileManager.writeToRelativeFile("private_key.txt", privateKey.toString().getBytes());
+					keyGen.initialize(2048);
+					KeyPair key = keyGen.generateKeyPair();
+					publicKey = key.getPublic();
+					privateKey = key.getPrivate();
+
+					// Insert public key in DHT3 and private key locally
+					insertPiece3(publicKey);
+					fileManager.savePrivateKey(privateKey);	
 				}
+
 			}
+			
 			this.networking = new ServerClient(getNetworkingPort(), this);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -474,30 +445,92 @@ public class ChordWrapper {
 		return null;
 	}
 	
-	private Set<Serializable> getPiece3(Key key) throws ServiceException {
-		return this.dht3.retrieve(key);
+	public PublicKey getPiece3(Key key) throws ServiceException {
+		try {
+			JSONObject retrieved = (JSONObject) this.dht3.retrieve(key).toArray()[0];	
+			BigInteger modulus = (BigInteger) retrieved.get("modulus");
+			BigInteger exponent = (BigInteger) retrieved.get("exponent");
+			RSAPublicKeySpec rsaPublicKeySpec = new RSAPublicKeySpec(modulus, exponent);  
+			KeyFactory fact;
+			fact = KeyFactory.getInstance("RSA");
+			PublicKey publicKey = fact.generatePublic(rsaPublicKeySpec);  
+			return publicKey;
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidKeySpecException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}catch(ArrayIndexOutOfBoundsException e){
+			// Creator who doesn't have entries in his DHT3
+			System.out.println("getting piece" + dht3.toString() + " " + key);
+		}
+
+		return null;  
 	}
 	
+	private void insertPiece3(PublicKey publicKey){
+		JSONObject data  = new JSONObject();
+		try {
+			KeyFactory keyFactory = KeyFactory.getInstance("RSA");  
+			RSAPublicKeySpec rsaPubKeySpec = keyFactory.getKeySpec(publicKey, RSAPublicKeySpec.class);
+			data.put("modulus", rsaPubKeySpec.getModulus());
+			data.put("exponent", rsaPubKeySpec.getPublicExponent());
+
+			//get macAddress
+			InetAddress address = InetAddress.getLocalHost();
+			NetworkInterface nwi = NetworkInterface.getByInetAddress(address);
+			byte mac[] = nwi.getHardwareAddress();
+			if(mac != null) {
+				StringBuilder macAddress = new StringBuilder();
+				for (int i = 0; i < mac.length; i++) {
+					macAddress.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
+				}
+				
+				// Insert public key in DHT3
+				dht3.insert(new Key(macAddress.toString())
+				, data);
+			}
+
+		} catch (InvalidKeySpecException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  
+	}
 	// Sends torrentHash, torrentKey and IV encrypted using PK_receiver
 	// Assumes DHT3 with mapping receiverUniqueAddress -> PK_receiver
 	// Tries for sending directly to receiver, and if fails sends to 
 	// bootstrapping DNS which will keep them for forwarding
 	public boolean shareFile(String torrentHash, String torrentKey,
-			String IV, String receiverUniqueAddress) {
+			String IV, String fileName, String receiverUniqueAddress) {
 		try {
-			//prepare 
-			Set<Serializable> PK_receiver = getPiece3(new Key(receiverUniqueAddress));			
-			JSONObject data = new JSONObject();
-			data.put("torrentHash", torrentHash);
-			data.put("torrentKey", torrentKey);
-			data.put("IV", IV);
-			byte[] dataBytes = data.toJSONString().getBytes();
-			
-			byte[] encrypted = Crypto.encryptWithPK(
-					(PublicKey)PK_receiver.toArray()[0], dataBytes);
-			
-			
-			
+			PublicKey PK_receiver = getPiece3(new Key(receiverUniqueAddress));	
+			if(PK_receiver != null){
+				JSONObject data = new JSONObject();
+				data.put("fileName", fileName);
+				data.put("torrentHash", torrentHash);
+				data.put("torrentKey", torrentKey);
+				data.put("IV", IV);
+				byte[] dataBytes = data.toJSONString().getBytes();
+				byte[] encrypted = Crypto.encryptWithPK(PK_receiver, dataBytes);
+				
+				// SEND, 
+				sendBytes(encrypted, "localhost", 5679);	
+				return true;
+			}
+			return false;
 		} catch (ServiceException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -536,62 +569,52 @@ public class ChordWrapper {
 
 		return null;
 	}
-
-	public static void main(String[] args) {
-
-		// initialize network
-		ChordWrapper init = ChordWrapper.initNetwork(4000, 6000, 8000);
-
-		// joinExistingNetwork starts
-		// PropertiesLoader.loadPropertyFile();
-
-		// ChordWrapper bootstrapper = ChordWrapper.joinNetwork(8001, 4001,
-		// "192.168.1.1:8000", "192.168.1.1:4000");
-
-		String[] torrentinfo = null;
-
-		Scanner sc = new Scanner(System.in);
-		sc.nextLine();
+	public String[] receiveShare(byte[] received){
+		PrivateKey privateKey = fileManager.readPrivateKey();
+		Cipher cipher;
 		try {
-			torrentinfo = init.uploadFile("IMG_8840.JPG");
-			// the bootstrapper should know the torrentinfo somehow
-			// use sockets for testing sake
-			// DatagramSocket datagramSocket = new DatagramSocket(null);
-			// datagramSocket.bind(new
-			// InetSocketAddress(InetAddress.getByName(""),5000));
+			cipher = Cipher.getInstance("RSA");
+			cipher.init(Cipher.DECRYPT_MODE, privateKey);
+			byte[] decryptedData = cipher.doFinal(received);
+			
+			String decryptedString = new String(decryptedData);
+			JSONObject map = (JSONObject) JSONValue.parse(decryptedString);
+			String fileName = (String) map.get("fileName");
+			String torrentHash = (String) map.get("torrentHash");
+			String torrentKey = (String) map.get("torrentKey");
+			String IV = (String) map.get("IV");
+			
+			// save info locally in a separate file
+			fileManager.writeToRelativeFile("sharing_info.txt", 
+					(fileName + "\t" +  torrentHash + "\t"+
+							torrentKey + "\t" + IV + "\n" ).getBytes(), true);
 
-			// for(int i=0;i<torrentinfo.length;i++){
-			// System.out.println(torrentinfo[i]);
-			// DatagramPacket packet = new DatagramPacket(message,
-			// message.length, address, PORT); // create packet to send
-			// datagramSocket.send(packet);
-			// }
-
-		} catch (Exception e1) {
+			String[] back = {fileName, torrentHash, torrentKey, IV};
+			return back;
+		} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
 			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-
-		try {
-			// bootstrapper.downloadFile(torrentinfo);
-		} catch (Exception e) {
+			e.printStackTrace();
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
+		return null;
 	}
 	// will be called when the peer receives something
 	public void receivedBytes(byte[] bs)  {
 		String s = new String(bs);
-		JSONObject map = (JSONObject) JSONValue.parse(s);
-		String filename = (String) map.get("filename");
-		ArrayList<String> torrentInfo = (ArrayList<String>) map
-				.get("torrentInfo");
-		// System.out.println(torrentInfo.get("torrentInfo"));
-		System.out.println("Downloading");
-		System.out.println(torrentInfo);
-		String[] torrentInfoArray = { torrentInfo.get(0), torrentInfo.get(1),
-				torrentInfo.get(2) };
+		// Decrypt
+		String[] receivedArray = receiveShare(bs);
+		String filename = receivedArray[0];
+		String[] torrentInfoArray = {receivedArray[1], receivedArray[2],
+				receivedArray[3]};
+		
 		Scanner sc = new Scanner(System.in);
 		System.out.println("Someone wants to share file " + filename
 				+ " Press y to approve, n otherwise");

@@ -1,12 +1,15 @@
 package tests;
 
 import java.io.ObjectInputStream.GetField;
+import java.net.MalformedURLException;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.json.simple.JSONValue;
 
 import PeerBox.ChordWrapper;
+import de.uniba.wiai.lspi.chord.console.command.entry.Key;
 import de.uniba.wiai.lspi.chord.data.URL;
 import de.uniba.wiai.lspi.chord.service.PropertiesLoader;
 import networking.ServerClient;
@@ -44,12 +47,32 @@ public class TestNetwork {
 		
 		System.out.println("json string is \n" + jsonString);
 		System.out.println("there are " + jsonString.getBytes().length);
-		peer0.sendBytes(jsonString.getBytes(), urls1[0].getHost(), peer1.networking.port);
+		peer0.sendBytes(jsonString.getBytes(),
+				urls1[0].getHost(), 
+				peer1.networking.port);		
+		
+	}
+	public static void testSharing() throws Exception{
+		PropertiesLoader.loadPropertyFile();
+		URL[] urls0 = TestUtils.makeURLs(0);
+		URL[] urls1 = TestUtils.makeURLs(1);
+		URL[] urls2 = TestUtils.makeURLs(2);
+
+		ChordWrapper peer0  = new ChordWrapper(urls0[0], urls0[1], urls0[2], "peer0");
+		ChordWrapper peer1  = new ChordWrapper(urls1[0], urls1[1], urls1[2], 
+				urls0[0], urls0[1], urls0[2], "peer1");
+		ChordWrapper peer2  = new ChordWrapper(urls2[0], urls2[1], urls2[2], 
+				urls0[0], urls0[1], urls0[2], "peer2");
+		System.out.println("peer0 sharing file");
+		String[] torrentInfo = peer0.uploadFile("IMG_8840.JPG");
+		
+		peer0.shareFile(torrentInfo[0], torrentInfo[1], torrentInfo[2], 
+				"IMG_8840.JPG", "10-40-F3-A7-CD-90");
 		
 		
 	}
 	
 	public static void main(String[] args) throws Exception{
-		sendTorrentInfoAndDownload();
+		testSharing();
 	}
 }

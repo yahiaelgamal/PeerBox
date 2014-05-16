@@ -1,11 +1,19 @@
 package PeerBox;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.InvalidParameterSpecException;
+import java.security.spec.RSAPrivateKeySpec;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -108,6 +116,44 @@ public class Crypto {
 	public static int getDigestLength() throws NoSuchAlgorithmException {
 		return MessageDigest.getInstance(HASH_ALGO).getDigestLength();
 	}
+	public static byte[] decryptWithPK(PrivateKey pk, byte[] data){
+		
+		return null;
+	}
+	 /** 
+	  * ready code
+	  */  
+	public PrivateKey readPrivateKeyFromFile() throws IOException{  
+		String fileName = "private_key.txt";
+		FileInputStream fis = null;  
+		ObjectInputStream ois = null;  
+		try {  
+			fis = new FileInputStream(new File(fileName));  
+			ois = new ObjectInputStream(fis);  
+
+			BigInteger modulus = (BigInteger) ois.readObject();  
+			BigInteger exponent = (BigInteger) ois.readObject();  
+
+			//Get Private Key  
+			RSAPrivateKeySpec rsaPrivateKeySpec = new RSAPrivateKeySpec(modulus, exponent);  
+			KeyFactory fact = KeyFactory.getInstance("RSA");  
+			PrivateKey privateKey = fact.generatePrivate(rsaPrivateKeySpec);  
+
+			return privateKey;  
+
+		} catch (Exception e) {  
+			e.printStackTrace();  
+		}  
+		finally{  
+			if(ois != null){  
+				ois.close();  
+				if(fis != null){  
+					fis.close();  
+				}  
+			}  
+		}  
+		return null;  
+	}   
 	public static byte[] encryptWithPK(PublicKey pk, byte[] data){
 		try {
 			// create RSA public key cipher
@@ -135,6 +181,10 @@ public class Crypto {
 			e.printStackTrace();
 		}
 
+		return null;
+	}
+	public static byte[] decryptWithPK(PrivateKey key){
+		
 		return null;
 	}
 	
